@@ -203,6 +203,7 @@ csp_conn_t * csp_route(csp_id_t id, nexthop_t avoid_nexthop, CSP_BASE_TYPE * pxT
 	idout.src = id.dst;
 	idout.dport = id.sport;
 	idout.sport = id.dport;
+	idout.protocol = id.protocol;
 	conn = csp_conn_new(id, idout);
 
 	if (conn == NULL)

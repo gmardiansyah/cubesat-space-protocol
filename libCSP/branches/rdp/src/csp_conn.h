@@ -40,6 +40,7 @@ struct csp_conn_s {
     csp_id_t idout;                 // Identifier transmitted
     csp_queue_handle_t rx_queue;    // Queue for RX packets
     csp_queue_handle_t rx_socket;	// Socket to be "woken" when first packet is ready
+    csp_l4data_t * l4data;			// Pointer to a layer4 info area (Opaque pointer)
 };
 
 /** @brief Socket struct */
