@@ -29,8 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 /** @brief Connection states */
 typedef enum {
-    SOCKET_CLOSED,                  /**< Connection closed */
-    SOCKET_OPEN,                    /**< Connection open (ready to send) */
+    CONN_CLOSED,                  /**< Connection closed */
+    CONN_OPEN,                    /**< Connection open (ready to send) */
 } csp_conn_state_t;
 
 /** @brief Connection struct */

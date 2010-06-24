@@ -44,7 +44,7 @@ void csp_conn_init(void) {
 	int i;
 	for (i = 0; i < CONN_MAX; i++) {
         arr_conn[i].rx_queue = csp_queue_create(CONN_QUEUE_LENGTH, sizeof(csp_packet_t *));
-		arr_conn[i].state = SOCKET_CLOSED;
+		arr_conn[i].state = CONN_CLOSED;
 	}
 
 }
@@ -65,7 +65,7 @@ csp_conn_t * csp_conn_find(uint32_t id, uint32_t mask) {
 
     for (i = 0; i < CONN_MAX; i++) {
 		conn = &arr_conn[i];
-		if ((conn->state != SOCKET_CLOSED) && (conn->idin.ext & mask) == (id & mask))
+		if ((conn->state != CONN_CLOSED) && (conn->idin.ext & mask) == (id & mask))
 			return conn;
     }
 
@@ -88,8 +88,8 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 	for (i = 0; i < CONN_MAX; i++) {
 		conn = &arr_conn[i];
 
-		if(conn->state == SOCKET_CLOSED) {
-			conn->state = SOCKET_OPEN;
+		if(conn->state == CONN_CLOSED) {
+			conn->state = CONN_OPEN;
             conn->idin = idin;
             conn->idout = idout;
             CSP_EXIT_CRITICAL();
@@ -116,7 +116,7 @@ void csp_close(csp_conn_t * conn) {
     	csp_buffer_free(packet);
 
     /* Set to closed */
-    conn->state = SOCKET_CLOSED;
+    conn->state = CONN_CLOSED;
 
 }
 
