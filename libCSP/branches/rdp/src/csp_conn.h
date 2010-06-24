@@ -39,6 +39,7 @@ struct csp_conn_s {
     csp_id_t idin;                  // Identifier received
     csp_id_t idout;                 // Identifier transmitted
     csp_queue_handle_t rx_queue;    // Queue for RX packets
+    csp_queue_handle_t rx_socket;	// Socket to be "woken" when first packet is ready
 };
 
 /** @brief Socket struct */

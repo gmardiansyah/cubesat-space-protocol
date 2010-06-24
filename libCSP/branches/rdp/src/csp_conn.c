@@ -127,7 +127,7 @@ void csp_close(csp_conn_t * conn) {
  * There is no handshake in the CSP protocol
  * @return a pointer to a new connection or NULL
  */
-csp_conn_t * csp_connect(uint8_t prio, uint8_t dest, uint8_t dport) {
+csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t dport) {
 
 	static uint8_t sport = 31;
     
@@ -137,10 +137,12 @@ csp_conn_t * csp_connect(uint8_t prio, uint8_t dest, uint8_t dport) {
 	incoming_id.dst = my_address;
 	incoming_id.src = dest;
 	incoming_id.sport = dport;
+	incoming_id.protocol = protocol;
 	outgoing_id.pri = prio;
 	outgoing_id.dst = dest;
 	outgoing_id.src = my_address;
 	outgoing_id.dport = dport;
+	outgoing_id.protocol = protocol;
     
     /* Find an unused ephemeral port */
     csp_conn_t * conn;

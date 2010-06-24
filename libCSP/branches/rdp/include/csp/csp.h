@@ -46,7 +46,7 @@ enum csp_reserved_ports_e {
  * PRIORITIES
  */
 
-enum csp_prio_e {
+typedef enum csp_prio_e {
 	CSP_PRIO_CRITICAL	= 0,
 	CSP_PRIO_ALERT		= 1,
 	CSP_PRIO_HIGH       = 2,
@@ -55,17 +55,17 @@ enum csp_prio_e {
 	CSP_PRIO_LOW        = 5,
 	CSP_PRIO_BULK       = 6,
 	CSP_PRIO_DEBUG      = 7
-};
+} csp_prio_t;
 
 /**
  * CSP Protocol Types
  */
 
-enum csp_protocol_e {
+typedef enum csp_protocol_e {
 	CSP_UDP = 0,
 	CSP_RDP = 1,
 	CSP_STP = 2
-};
+} csp_protocol_t;
 
 /** @brief The address of the node */
 extern uint8_t my_address;
@@ -96,7 +96,7 @@ typedef union {
 
 #if defined(_CSP_BIG_ENDIAN_) && !defined(_CSP_LITTLE_ENDIAN_)
 
-    unsigned int res : 3;
+    unsigned int protocol : 3;
     unsigned int pri : 3;
     unsigned int src : 4;
     unsigned int dst : 4;
@@ -114,7 +114,7 @@ typedef union {
     unsigned int dst : 4;
     unsigned int src : 4;
     unsigned int pri : 3;
-    unsigned int res : 3;
+    unsigned int protocol : 3;
 
 #else
 
@@ -158,7 +158,7 @@ int csp_transaction(uint8_t prio, uint8_t dest, uint8_t port, int timeout, void 
 int csp_transaction_persistent(csp_conn_t * conn, int timeout, void * outbuf, int outlen, void * inbuf, int inlen);
 
 /* Implemented in csp_conn.c */
-csp_conn_t * csp_connect(uint8_t prio, uint8_t dest, uint8_t port);
+csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t port);
 void csp_close(csp_conn_t * conn);
 int csp_conn_dport(csp_conn_t * conn);
 int csp_conn_sport(csp_conn_t * conn);

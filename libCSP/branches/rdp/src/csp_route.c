@@ -37,6 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "csp_route.h"
 #include "csp_conn.h"
 #include "csp_io.h"
+#include "transport/csp_transport.h"
 
 /* Static allocation of interfaces */
 csp_iface_t iface[17];
@@ -56,6 +57,7 @@ void csp_route_table_init(void) {
 
 	/* Ensure that no traffic is routed until the Router task creates the RX queue */
 	fallback_conn.rx_queue = NULL;
+	fallback_conn.rx_socket = NULL;
 
 }
 
@@ -147,7 +149,7 @@ csp_iface_t * csp_route_if(uint8_t id) {
 csp_conn_t * csp_route(csp_id_t id, nexthop_t avoid_nexthop, CSP_BASE_TYPE * pxTaskWoken) {
 
 	csp_conn_t * conn;
-	csp_queue_handle_t * queue = NULL;
+	csp_queue_handle_t queue = NULL;
 	csp_iface_t * dst;
 
 	/* Search for an existing connection */
@@ -163,11 +165,11 @@ csp_conn_t * csp_route(csp_id_t id, nexthop_t avoid_nexthop, CSP_BASE_TYPE * pxT
 
 		/* Try to deliver to incoming port number */
 		if (ports[id.dport].state == PORT_OPEN) {
-			queue = &(ports[id.dport].socket->conn_queue);
+			queue = ports[id.dport].socket->conn_queue;
 
 		/* Otherwise, try local "catch all" port number */
 		} else if (ports[CSP_ANY].state == PORT_OPEN) {
-			queue = &(ports[CSP_ANY].socket->conn_queue);
+			queue = ports[CSP_ANY].socket->conn_queue;
 
 		/* Or reject */
 		} else {
@@ -192,7 +194,6 @@ csp_conn_t * csp_route(csp_id_t id, nexthop_t avoid_nexthop, CSP_BASE_TYPE * pxT
 	/* If the packet was not routed, reject it */
 	} else {
 		return NULL;
-
 	}
 
 	/* New incoming connection accepted */
@@ -207,21 +208,8 @@ csp_conn_t * csp_route(csp_id_t id, nexthop_t avoid_nexthop, CSP_BASE_TYPE * pxT
 	if (conn == NULL)
 		return NULL;
 
-	/* Try to queue up the new connection pointer */
-	if ((queue != NULL) && (*queue != NULL)) {
-		int result;
-		if (pxTaskWoken == NULL)
-			result = csp_queue_enqueue(*queue, &conn, 0);
-		else
-			result = csp_queue_enqueue_isr(*queue, &conn, pxTaskWoken);
-
-		if (result == CSP_QUEUE_FULL) {
-			printf("Warning Routing Queue Full\r\n");
-			/* Don't call csp_conn_close, since this might be ISR context. */
-			conn->state = CONN_CLOSED;
-			return NULL;
-		}
-	}
+	/* Store the queue to be posted to */
+	conn->rx_socket = queue;
 
 	return conn;
 
@@ -250,7 +238,6 @@ csp_conn_t * csp_route(csp_id_t id, nexthop_t avoid_nexthop, CSP_BASE_TYPE * pxT
 void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * pxTaskWoken) {
 
 	csp_conn_t * conn;
-	int result;
 
 	csp_debug("Packet P 0x%02X, S 0x%02X, D 0x%02X, Dp 0x%02X, Sp 0x%02X, T 0x%02X\r\n",
 			packet->id.pri, packet->id.src, packet->id.dst, packet->id.dport,
@@ -265,22 +252,23 @@ void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * 
 		return;
 	}
 
-	/* Enqueue */
-	if (pxTaskWoken == NULL)
-		result = csp_queue_enqueue(conn->rx_queue, &packet, 0);
-	else
-		result = csp_queue_enqueue_isr(conn->rx_queue, &packet, pxTaskWoken);
-
-	/* Save buffer pointer */
-	if (result != CSP_QUEUE_OK) {
-		printf("ERROR: Connection buffer queue full!\r\n");
-		csp_buffer_free(packet);
+	/* If the message is destined for the fallback queue,
+	 * send it directly to the RX queue using the "UDP" transport
+	 */
+	if (conn->rx_queue == &fallback_conn) {
+		csp_udp_new_packet(conn, packet, pxTaskWoken);
 		return;
 	}
 
-	/* If a local callback is used, call it */
-	if ((packet->id.dst == my_address) && (packet->id.dport < 16)
-			&& (ports[packet->id.dport].callback != NULL))
-		ports[packet->id.dport].callback(conn);
+	/* Pass packet to the right transport module */
+	switch(packet->id.protocol) {
+	case CSP_RDP:
+		csp_rdp_new_packet(conn, packet, pxTaskWoken);
+		break;
+	case CSP_UDP:
+	default:
+		csp_udp_new_packet(conn, packet, pxTaskWoken);
+		break;
+	}
 
 }
