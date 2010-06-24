@@ -235,7 +235,7 @@ int csp_transaction_persistent(csp_conn_t * conn, int timeout, void * outbuf, in
  */
 int csp_transaction(uint8_t prio, uint8_t dest, uint8_t port, int timeout, void * outbuf, int outlen, void * inbuf, int inlen) {
 
-	csp_conn_t * conn = csp_connect(prio, dest, port);
+	csp_conn_t * conn = csp_connect(CSP_UDP, prio, dest, port);
 	if (conn == NULL)
 		return 0;
 
