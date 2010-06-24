@@ -45,7 +45,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #else
 
 /* General config */
-#define CSP_DEBUG           0       // Enable/disable debugging output
+#define CSP_DEBUG           1       // Enable/disable debugging output
 #define CONN_MAX			10      // Number of statically allocated connection structs
 #define CONN_QUEUE_LENGTH	100		// Number of packets potentially in queue for a connection
 

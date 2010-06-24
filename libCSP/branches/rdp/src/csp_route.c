@@ -218,7 +218,7 @@ csp_conn_t * csp_route(csp_id_t id, nexthop_t avoid_nexthop, CSP_BASE_TYPE * pxT
 		if (result == CSP_QUEUE_FULL) {
 			printf("Warning Routing Queue Full\r\n");
 			/* Don't call csp_conn_close, since this might be ISR context. */
-			conn->state = SOCKET_CLOSED;
+			conn->state = CONN_CLOSED;
 			return NULL;
 		}
 	}
