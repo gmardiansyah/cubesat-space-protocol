@@ -147,6 +147,7 @@ typedef struct __attribute__((__packed__)) {
 
 typedef struct csp_socket_s csp_socket_t;
 typedef struct csp_conn_s csp_conn_t;
+typedef struct csp_l4data_s csp_l4data_t;
 
 /* Implemented in csp_io.c */
 void csp_init(uint8_t my_node_address);
@@ -158,7 +159,7 @@ int csp_transaction(uint8_t prio, uint8_t dest, uint8_t port, int timeout, void 
 int csp_transaction_persistent(csp_conn_t * conn, int timeout, void * outbuf, int outlen, void * inbuf, int inlen);
 
 /* Implemented in csp_conn.c */
-csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t port);
+csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t port, int timeout);
 void csp_close(csp_conn_t * conn);
 int csp_conn_dport(csp_conn_t * conn);
 int csp_conn_sport(csp_conn_t * conn);

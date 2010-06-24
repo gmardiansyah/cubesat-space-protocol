@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "arch/csp_time.h"
 
 #include "csp_conn.h"
+#include "transport/csp_transport.h"
 
 /* Static connection pool and lock */
 static csp_conn_t arr_conn[CONN_MAX];
@@ -45,6 +46,7 @@ void csp_conn_init(void) {
 	for (i = 0; i < CONN_MAX; i++) {
         arr_conn[i].rx_queue = csp_queue_create(CONN_QUEUE_LENGTH, sizeof(csp_packet_t *));
 		arr_conn[i].state = CONN_CLOSED;
+		arr_conn[i].l4data = NULL;
 	}
 
 }
@@ -90,14 +92,31 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 
 		if(conn->state == CONN_CLOSED) {
 			conn->state = CONN_OPEN;
+			CSP_EXIT_CRITICAL();
             conn->idin = idin;
             conn->idout = idout;
-            CSP_EXIT_CRITICAL();
-            return conn;
+            break;
         }
     }
 	CSP_EXIT_CRITICAL();
+
+    /* Ensure l4 knows this conn is opening */
+	int result;
+    switch(conn->idin.protocol) {
+	case CSP_RDP:
+		result = csp_rdp_allocate(conn);
+		break;
+	default:
+		result = 1;
+	}
     
+    if (result == 1) {
+    	return conn;
+    } else {
+    	conn->state = CONN_CLOSED;
+    	return NULL;
+    }
+
     return NULL;
   
 }
@@ -115,6 +134,13 @@ void csp_close(csp_conn_t * conn) {
     while(csp_queue_dequeue(conn->rx_queue, &packet, 0) == CSP_QUEUE_OK)
     	csp_buffer_free(packet);
 
+    /* Ensure l4 knows this conn is closing */
+    switch(conn->idin.protocol) {
+	case CSP_RDP:
+		csp_rdp_close(conn);
+		break;
+	}
+
     /* Set to closed */
     conn->state = CONN_CLOSED;
 
@@ -127,7 +153,7 @@ void csp_close(csp_conn_t * conn) {
  * There is no handshake in the CSP protocol
  * @return a pointer to a new connection or NULL
  */
-csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t dport) {
+csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t dport, int timeout) {
 
 	static uint8_t sport = 31;
     
@@ -168,8 +194,30 @@ csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, ui
     if (sport == start)
         return NULL;
 
+    /* Get storage for new connection */
     conn = csp_conn_new(incoming_id, outgoing_id);
+    if (conn == NULL)
+    	return NULL;
 
+    /* Call Transport Layer connect */
+    int result;
+    switch(protocol) {
+    case CSP_RDP:
+    	result = csp_rdp_connect_active(conn, timeout);
+    	break;
+    default:
+    	result = 1;
+    }
+
+    /* If the transport layer has failed to connect
+     * deallocate connetion structure again and return NULL
+     */
+    if (result == 0) {
+    	csp_close(conn);
+		return NULL;
+    }
+
+    /* We have a successfull connection */
     return conn;
 
 }

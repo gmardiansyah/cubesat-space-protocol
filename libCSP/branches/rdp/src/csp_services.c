@@ -42,7 +42,10 @@ void csp_ping(uint8_t node, int timeout) {
 	packet->length = 1;
 
 	/* Open connection */
-	csp_conn_t * conn = csp_connect(CSP_UDP, CSP_PRIO_NORM, node, CSP_PING);
+	csp_conn_t * conn = csp_connect(CSP_RDP, CSP_PRIO_NORM, node, CSP_PING, 0);
+	if (conn == NULL)
+		return;
+
 	printf("Ping node %u: ", node);
 
 	/* Counter */
@@ -91,7 +94,10 @@ void csp_ping_noreply(uint8_t node) {
 	packet->length = 1;
 
 	/* Open connection */
-	csp_conn_t * conn = csp_connect(CSP_UDP, CSP_PRIO_NORM, node, CSP_PING);
+	csp_conn_t * conn = csp_connect(CSP_UDP, CSP_PRIO_NORM, node, CSP_PING, 0);
+	if (conn == NULL)
+		return;
+
 	printf("Ping ignore reply node %u.\r\n", node);
 
 	/* Try to send frame */
@@ -121,7 +127,10 @@ void csp_ps(uint8_t node, int timeout) {
 	packet->length = 1;
 
 	/* Open connection */
-	csp_conn_t * conn = csp_connect(CSP_UDP, CSP_PRIO_NORM, node, CSP_PS);
+	csp_conn_t * conn = csp_connect(CSP_UDP, CSP_PRIO_NORM, node, CSP_PS, 0);
+	if (conn == NULL)
+		return;
+
 	printf("PS node %u: ", node);
 
 	/* Try to send frame */
