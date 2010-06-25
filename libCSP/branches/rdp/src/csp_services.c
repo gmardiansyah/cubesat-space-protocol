@@ -48,35 +48,30 @@ void csp_ping(uint8_t node, int timeout) {
 	packet->data[0] = 0x55;
 	packet->length = 1;
 
-	int i;
-	for (i = 0; i < 10; i++) {
+	printf("Ping node %u: ", node);
 
-		printf("Ping node %u: ", node);
+	/* Counter */
+	start = csp_get_ms();
 
-		/* Counter */
-		start = csp_get_ms();
+	/* Try to send frame */
+	if (!csp_send(conn, packet, 0))
+		goto out;
 
-		/* Try to send frame */
-		if (!csp_send(conn, packet, 0))
-			goto out;
+	/* Read incoming frame */
+	packet = csp_read(conn, timeout);
 
-		/* Read incoming frame */
-		packet = csp_read(conn, timeout);
+	if (packet == NULL) {
+		printf(" Timeout!\r\n");
+		goto out;
+	}
 
-		if (packet == NULL) {
-			printf(" Timeout!\r\n");
-			goto out;
-		}
+	/* We have a reply */
+	time = (csp_get_ms() - start);
 
-		/* We have a reply */
-		time = (csp_get_ms() - start);
-
-		if (time <= 1) {
-			printf(" Reply in <1 tick\r\n");
-		} else {
-			printf(" Reply in %u ms\r\n", (unsigned int) time);
-		}
-
+	if (time <= 1) {
+		printf(" Reply in <1 tick\r\n");
+	} else {
+		printf(" Reply in %u ms\r\n", (unsigned int) time);
 	}
 
 	/* Clean up */

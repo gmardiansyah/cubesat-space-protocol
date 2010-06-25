@@ -82,26 +82,36 @@ csp_conn_t * csp_conn_find(uint32_t id, uint32_t mask) {
  */
 csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 
-    /* Search for free connection */
-    int i;
-    csp_conn_t * conn;
+	static uint8_t csp_conn_last_given = 0;
+	int i;
+	csp_conn_t * conn;
 
-    CSP_ENTER_CRITICAL();
-	for (i = 0; i < CONN_MAX; i++) {
+	/* Search for free connection */
+	i = csp_conn_last_given;								// Start with the last given element
+	i = (i + 1) % CONN_MAX;									// Increment by one
+
+	CSP_ENTER_CRITICAL();
+	while(i != csp_conn_last_given) {						// Loop till we have checked all
 		conn = &arr_conn[i];
-
-		if(conn->state == CONN_CLOSED) {
+		if (conn->state == CONN_CLOSED) {
 			conn->state = CONN_OPEN;
-			CSP_EXIT_CRITICAL();
+			csp_conn_last_given = i;
             break;
         }
-    }
+		i = (i + 1) % CONN_MAX;								// Increment by one
+	}
 	CSP_EXIT_CRITICAL();
-
 
 	conn->idin = idin;
 	conn->idout = idout;
 	conn->rx_socket = NULL;
+
+	/* Ensure connection queue is empty */
+	csp_packet_t * packet;
+	while(csp_queue_dequeue(conn->rx_queue, &packet, 0) == CSP_QUEUE_OK) {
+		if (packet != NULL)
+			csp_buffer_free(packet);
+	}
 
     /* Ensure l4 knows this conn is opening */
 	int result;
@@ -132,13 +142,17 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 
 void csp_close(csp_conn_t * conn) {
 
-	if (conn->state == CONN_CLOSED)
-		csp_debug(CSP_WARN, "Closing already closed connection!\r\n");
+	if (conn->state == CONN_CLOSED) {
+		csp_debug(CSP_BUFFER, "Conn already closed by transport layer\r\n");
+		return;
+	}
    
 	/* Ensure connection queue is empty */
 	csp_packet_t * packet;
-    while(csp_queue_dequeue(conn->rx_queue, &packet, 0) == CSP_QUEUE_OK)
-    	csp_buffer_free(packet);
+    while(csp_queue_dequeue(conn->rx_queue, &packet, 0) == CSP_QUEUE_OK) {
+    	if (packet != NULL)
+    		csp_buffer_free(packet);
+    }
 
     /* Ensure l4 knows this conn is closing */
     switch(conn->idin.protocol) {
@@ -146,6 +160,10 @@ void csp_close(csp_conn_t * conn) {
 		csp_rdp_close(conn);
 		break;
 	}
+
+    /* Try to wake any tasks */
+    void * null_pointer = NULL;
+    csp_queue_enqueue(conn->rx_queue, &null_pointer, 0);
 
     /* Set to closed */
     conn->state = CONN_CLOSED;
