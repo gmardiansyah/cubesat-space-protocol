@@ -64,17 +64,30 @@ static rdp_header_t * csp_rdp_header_add(csp_packet_t * packet) {
 	return header;
 }
 
-static rdp_header_t * csp_rdp_header_add_overwrite(csp_packet_t * packet, rdp_header_t * write_header) {
-	memcpy(&packet->data[packet->length], write_header, sizeof(rdp_header_t));
-	rdp_header_t * header = (rdp_header_t *) &packet->data[packet->length];
-	packet->length += sizeof(rdp_header_t);
-	return header;
-}
-
 static rdp_header_t * csp_rdp_header_remove(csp_packet_t * packet) {
 	rdp_header_t * header = (rdp_header_t *) &packet->data[packet->length-sizeof(rdp_header_t)];
 	packet->length -= sizeof(rdp_header_t);
 	return header;
+}
+
+static void csp_rdp_send_cmp(csp_conn_t * conn, int ack, int syn, int rst, int seq_nr, int ack_nr) {
+
+	csp_packet_t * packet = csp_buffer_get(20);
+	packet->length = 0;
+	rdp_header_t * header = csp_rdp_header_add(packet);
+	memset(header, 0, sizeof(rdp_header_t));
+	header->seq_nr = seq_nr;
+	header->ack_nr = ack_nr;
+	header->ack = ack;
+	header->syn = syn;
+	header->rst = rst;
+	if (csp_send_direct(conn->idout, packet, 0) == 0)
+		csp_buffer_free(packet);
+
+}
+
+static void csp_rdp_send_reset(csp_conn_t * conn) {
+	csp_rdp_send_cmp(conn, 0, 0, 1, 0xFFFF, 0xFFFF);
 }
 
 
@@ -94,10 +107,6 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 
 	csp_debug(CSP_PROTOCOL, "RDP: Packet accepted, state %u\r\n", conn->l4data->state);
 
-	/* Prepare new TX header */
-	rdp_header_t tx_header;
-	memset(&tx_header, 0, sizeof(rdp_header_t));
-
 	switch(conn->l4data->state) {
 
 	/**
@@ -114,13 +123,12 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 			csp_debug(CSP_PROTOCOL, "RDP: SYN-Received\r\n");
 			conn->l4data->rcv_cur = rx_header->seq_nr;
 			conn->l4data->rcv_irs = rx_header->seq_nr;
-			tx_header.seq_nr = conn->l4data->snd_iss;
-			tx_header.ack_nr = rx_header->seq_nr;
-			tx_header.ack = 1;
-			tx_header.syn = 1;
 			conn->l4data->state = RDP_SYN_RCVD;
-			csp_rdp_header_add_overwrite(packet, &tx_header);
-			csp_send_direct(conn->idout, packet, 0);
+
+			/* Send SYN/ACK */
+			csp_rdp_send_cmp(conn, 1, 1, 0, conn->l4data->snd_iss, conn->l4data->rcv_irs);
+
+			csp_buffer_free(packet);
 			return;
 		}
 
@@ -137,21 +145,22 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 			conn->l4data->rcv_cur = rx_header->seq_nr;
 			conn->l4data->rcv_irs = rx_header->seq_nr;
 			if (rx_header->ack) {
+
 				csp_debug(CSP_PROTOCOL, "RDP: NP: Conn open!\r\n");
 				conn->l4data->snd_una = rx_header->ack_nr;
 				conn->l4data->state = RDP_OPEN;
-				tx_header.seq_nr = conn->l4data->snd_nxt;
-				tx_header.ack_nr = conn->l4data->rcv_cur;
-				tx_header.ack = 1;
-				csp_rdp_header_add_overwrite(packet, &tx_header);
-				csp_send_direct(conn->idout, packet, 0);
+
+				/* Send ACK */
+				csp_rdp_send_cmp(conn, 1, 0 ,0 , conn->l4data->snd_nxt, conn->l4data->rcv_cur);
+
+
 				if (pxTaskWoken == NULL) {
 					csp_bin_sem_post(&conn->l4data->tx_wait);
 				} else {
 					csp_bin_sem_post_isr(&conn->l4data->tx_wait, pxTaskWoken);
 				}
 			} else {
-				csp_debug(CSP_WARN, "WARN: state SYN-SENT but ack set\r\n");
+				csp_debug(CSP_WARN, "WARN: state SYN-SENT but ack not set\r\n");
 				csp_buffer_free(packet);
 			}
 			return;
@@ -392,18 +401,12 @@ int csp_rdp_allocate(csp_conn_t * conn) {
 void csp_rdp_close(csp_conn_t * conn) {
 
 	if (conn->l4data->state == RDP_OPEN || conn->l4data->state == RDP_LISTEN) {
-		csp_debug(CSP_PROTOCOL, "RDP Close, sending RST\r\n");
 
 		/* Send Reset */
-		csp_packet_t * packet_rst = csp_buffer_get(20);
-		packet_rst->length = 0;
-		rdp_header_t * header_rst = csp_rdp_header_add(packet_rst);
-		memset(header_rst, 0, sizeof(rdp_header_t));
-		header_rst->seq_nr = conn->l4data->snd_nxt;
-		header_rst->rst = 1;
+		csp_rdp_send_reset(conn);
+		csp_debug(CSP_PROTOCOL, "RDP Close, sending RST\r\n");
 		conn->l4data->state = RDP_CLOSED;
-		if (csp_send_direct(conn->idout, packet_rst, 0) == 0)
-			csp_buffer_free(packet_rst);
+
 	}
 
 	csp_debug(CSP_PROTOCOL, "RDP: Free l4 data\r\n");
