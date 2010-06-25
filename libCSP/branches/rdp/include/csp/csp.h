@@ -224,15 +224,16 @@ void csp_buffer_free(void * packet);
 int csp_buffer_remaining(void);
 
 /* CSP debug printf - implemented in arch/x/csp_debug.c */
-typedef enum {
-	CSP_INFO,
-	CSP_ERROR,
-	CSP_WARN,
-	CSP_BUFFER,
-	CSP_PACKET,
-	CSP_PROTOCOL,
+typedef enum csp_debug_level_e {
+	CSP_INFO = 0,
+	CSP_ERROR = 1,
+	CSP_WARN = 2,
+	CSP_BUFFER = 3,
+	CSP_PACKET = 4,
+	CSP_PROTOCOL = 5,
 } csp_debug_level_t;
 
 void csp_debug(csp_debug_level_t level, const char * format, ...);
+void csp_debug_toggle_level(csp_debug_level_t level);
 
 #endif // _CSP_H_

@@ -27,17 +27,26 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <csp/csp.h>
 #include <csp/csp_config.h>
 
+static uint8_t levels_enable[6] = {
+		1,	// Info
+		1,	// Error
+		1,	// Warn
+		1,	// Buffer
+		1,	// Packet
+		0	// Protocol
+};
+
 void csp_debug(csp_debug_level_t level, const char * format, ...) {
 
 	const char * color;
 
 	switch(level) {
-	case CSP_INFO: 		color = ""; break;
-	case CSP_ERROR: 	color = "\E[1;91m"; break;
-	case CSP_WARN: 		color = "\E[0;93m"; break;
-	case CSP_BUFFER: 	color = "\E[0;33m"; break;
-	case CSP_PACKET: 	color = "\E[0;32m"; break;
-	case CSP_PROTOCOL:  color = "\E[0;94m"; break;
+	case CSP_INFO: 		if (!levels_enable[CSP_INFO]) return; 		color = ""; break;
+	case CSP_ERROR: 	if (!levels_enable[CSP_ERROR]) return; 		color = "\E[1;91m"; break;
+	case CSP_WARN: 		if (!levels_enable[CSP_WARN]) return; 		color = "\E[0;93m"; break;
+	case CSP_BUFFER: 	if (!levels_enable[CSP_BUFFER]) return; 	color = "\E[0;33m"; break;
+	case CSP_PACKET: 	if (!levels_enable[CSP_PACKET]) return; 	color = "\E[0;32m"; break;
+	case CSP_PROTOCOL:  if (!levels_enable[CSP_PROTOCOL]) return; 	color = "\E[0;94m"; break;
 	}
 
 	printf("%s", color);
@@ -51,4 +60,13 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
     printf("\E[0m");
 
 
+}
+
+void csp_debug_toggle_level(csp_debug_level_t level) {
+	if (level >= 6) {
+		printf("Max level is 5\r\n");
+		return;
+	}
+	levels_enable[level] = (levels_enable[level]) ? 0 : 1;
+	printf("Level %u: value %u\r\n", level, levels_enable[level]);
 }
