@@ -70,7 +70,7 @@ csp_conn_t * csp_conn_find(uint32_t id, uint32_t mask) {
 		if ((conn->state != CONN_CLOSED) && (conn->idin.ext & mask) == (id & mask))
 			return conn;
     }
-
+    
     return NULL;
 
 }
@@ -93,12 +93,15 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 		if(conn->state == CONN_CLOSED) {
 			conn->state = CONN_OPEN;
 			CSP_EXIT_CRITICAL();
-            conn->idin = idin;
-            conn->idout = idout;
             break;
         }
     }
 	CSP_EXIT_CRITICAL();
+
+
+	conn->idin = idin;
+	conn->idout = idout;
+	conn->rx_socket = NULL;
 
     /* Ensure l4 knows this conn is opening */
 	int result;
@@ -128,6 +131,9 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
  */
 
 void csp_close(csp_conn_t * conn) {
+
+	if (conn->state == CONN_CLOSED)
+		csp_debug(CSP_WARN, "Closing already closed connection!\r\n");
    
 	/* Ensure connection queue is empty */
 	csp_packet_t * packet;
@@ -220,6 +226,26 @@ csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, ui
     /* We have a successfull connection */
     return conn;
 
+}
+
+/**
+ * Small helper function to display the connection table
+ */
+void csp_conn_print_table(void) {
+
+	int i;
+	csp_conn_t * conn;
+
+    for (i = 0; i < CONN_MAX; i++) {
+		conn = &arr_conn[i];
+		printf("[%02u] %s %u -> %u, %u -> %u, sock: %p\r\n", i, (conn->state ? "OPEN" : "CLOSED"), conn->idin.src, conn->idin.dst, conn->idin.dport, conn->idin.sport, conn->rx_socket);
+
+		switch(conn->idin.protocol) {
+		case CSP_RDP:
+			csp_rdp_conn_print(conn);
+			break;
+		}
+    }
 }
 
 /**

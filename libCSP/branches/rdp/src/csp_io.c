@@ -37,6 +37,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "csp_conn.h"
 #include "csp_route.h"
 #include "csp_if_lo.h"
+#include "transport/csp_transport.h"
+
+#include <util/hexdump.h>
 
 /** Static local variables */
 unsigned char my_address;
@@ -127,18 +130,18 @@ csp_packet_t * csp_read(csp_conn_t * conn, int timeout) {
 int csp_send_direct(csp_id_t idout, csp_packet_t * packet, int timeout) {
 
 	if (packet == NULL) {
-		csp_debug("Invalid call to csp_send_direct\r\n");
+		csp_debug(CSP_ERROR, "Invalid call to csp_send_direct\r\n");
 		return 0;
 	}
 
 	csp_iface_t * ifout = csp_route_if(idout.dst);
 
 	if ((ifout == NULL) || (*ifout->nexthop == NULL)) {
-		csp_debug("No route to host: %#08x\r\n", idout.ext);
+		csp_debug(CSP_ERROR, "No route to host: %#08x\r\n", idout.ext);
 		return 0;
 	}
 
-	csp_debug("Sending packet from %u to %u port %u via interface %s\r\n", idout.src, idout.dst, idout.dport, ifout->name);
+	csp_debug(CSP_PACKET, "Sending packet from %u to %u port %u via interface %s\r\n", idout.src, idout.dst, idout.dport, ifout->name);
 
 	return (*ifout->nexthop)(idout, packet, timeout);
 
@@ -154,8 +157,14 @@ int csp_send_direct(csp_id_t idout, csp_packet_t * packet, int timeout) {
 int csp_send(csp_conn_t* conn, csp_packet_t * packet, int timeout) {
 
 	if (conn == NULL) {
-		csp_debug("Invalid call to csp_send\r\n");
+		csp_debug(CSP_ERROR, "Invalid call to csp_send\r\n");
 		return 0;
+	}
+
+	switch(conn->idout.protocol) {
+	case CSP_RDP:
+		csp_rdp_send(conn, packet, timeout);
+		break;
 	}
 
 	return csp_send_direct(conn->idout, packet, timeout);

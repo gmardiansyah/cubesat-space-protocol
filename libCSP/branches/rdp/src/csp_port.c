@@ -70,7 +70,7 @@ int csp_bind(csp_socket_t * socket, uint8_t port) {
 		return -1;
 	}
 
-	csp_debug("Binding socket %p to port %u\r\n", socket, port);
+	csp_debug(CSP_INFO, "Binding socket %p to port %u\r\n", socket, port);
 
 	/* Save listener */
 	ports[port].callback = NULL;
