@@ -95,7 +95,7 @@ void * csp_buffer_get(size_t buf_size) {
 #if CSP_BUFFER_CALLOC
 			memset(csp_buffer_p + (i * size), 0x00, size);
 #endif
-			//printf("Found element %u, size %u, at %p\r\n", i, size, csp_buffer_p + (i * size));
+			csp_debug(CSP_BUFFER, "BUFFER: Using element %u at %p\r\n", i, csp_buffer_p + (i * size));
 			return csp_buffer_p + (i * size);				// Return poniter
 		}
 		i = (i + 1) % count;								// Increment by one
@@ -112,6 +112,7 @@ void * csp_buffer_get(size_t buf_size) {
  */
 void csp_buffer_free(void * packet) {
 	int i = ((uint8_t *) packet - csp_buffer_p) / size;					// Find number in array by math (wooo)
+	csp_debug(CSP_BUFFER, "BUFFER: Free element %u\r\n", i);
 	if (i < 0 || i > count)
 		return;
 	csp_buffer_list[i] = CSP_BUFFER_FREE;					// Mark this as free now
@@ -128,4 +129,23 @@ int csp_buffer_remaining(void) {
 			buf_count++;
 	}
 	return buf_count;
+}
+
+void csp_buffer_print_table(void) {
+	int i;
+	csp_packet_t * packet;
+	for(i = 0; i < count; i++) {
+		printf("[%02u] ", i);
+		if (csp_buffer_list[i] == CSP_BUFFER_FREE) {
+			printf("FREE ");
+		} else {
+			printf("USED ");
+		}
+		packet = (csp_packet_t *) (csp_buffer_p + (i * size));
+		printf("Packet P 0x%02X, S 0x%02X, D 0x%02X, Dp 0x%02X, Sp 0x%02X, T 0x%02X",
+			packet->id.pri, packet->id.src, packet->id.dst, packet->id.dport,
+			packet->id.sport, packet->id.type);
+		printf("\r\n");
+
+	}
 }

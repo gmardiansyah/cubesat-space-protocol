@@ -45,6 +45,9 @@ void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 			conn->state = CONN_CLOSED;
 			return;
 		}
+
+		/* Ensure that this connection will not be posted to this socket again */
+		conn->rx_socket = NULL;
 	}
 
 	/* If a local callback is used, call it */
