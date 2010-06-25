@@ -412,7 +412,7 @@ void csp_rdp_close(csp_conn_t * conn) {
 	if (conn->l4data != NULL) {
 #ifdef _CSP_FREERTOS_
 		if (conn->l4data->tx_wait != NULL)
-			csp_free(conn->l4data);
+			csp_free(conn->l4data->tx_wait);
 #endif
 		csp_free(conn->l4data);
 		conn->l4data = NULL;
