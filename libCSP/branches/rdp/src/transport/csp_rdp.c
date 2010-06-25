@@ -114,8 +114,13 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 	 */
 	case RDP_LISTEN: {
 
-		if (rx_header->rst || rx_header->ack || rx_header->nul) {
-			csp_debug(CSP_WARN, "Got RESET, ACK or NUL in state LISTEN, sending RESET\r\n");
+		if (rx_header->rst) {
+			csp_debug(CSP_WARN, "Got RESET in state LISTEN\r\n");
+			goto discard_close;
+		}
+
+		if (rx_header->ack) {
+			csp_rdp_send_cmp(conn, 0, 0, 1, rx_header->ack_nr, 0);
 			goto discard_close;
 		}
 
@@ -161,8 +166,9 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 				}
 			} else {
 				csp_debug(CSP_WARN, "WARN: state SYN-SENT but ack not set\r\n");
-				csp_buffer_free(packet);
 			}
+
+			csp_buffer_free(packet);
 			return;
 		}
 
@@ -203,9 +209,7 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 
 		if (rx_header->rst == 1) {
 			csp_debug(CSP_PROTOCOL, "RDP: Got RESET in state OPEN, closing\r\n");
-			conn->l4data->state = RDP_CLOSE_WAIT;
-			csp_buffer_free(packet);
-			return;
+			goto discard_close;
 		}
 
 		if (rx_header->ack == 1) {
@@ -234,18 +238,6 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 
 		int result;
 
-		/* Enqueue */
-		if (pxTaskWoken == NULL)
-			result = csp_queue_enqueue(conn->rx_queue, &packet, 0);
-		else
-			result = csp_queue_enqueue_isr(conn->rx_queue, &packet, pxTaskWoken);
-
-		if (result != CSP_QUEUE_OK) {
-			printf("ERROR: Connection buffer queue full!\r\n");
-			csp_buffer_free(packet);
-			return;
-		}
-
 		/* Try to queue up the new connection pointer */
 		if (conn->rx_socket != NULL) {
 
@@ -256,14 +248,23 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 				result = csp_queue_enqueue_isr(conn->rx_socket, &conn, pxTaskWoken);
 
 			if (result == CSP_QUEUE_FULL) {
-				printf("Warning Routing Queue Full\r\n");
-				/* Don't call csp_conn_close, since this might be ISR context. */
-				conn->state = CONN_CLOSED;
-				return;
+				printf("Warning Socket Queue Full\r\n");
+				goto discard_close;
 			}
 
 			/* Ensure that this connection will not be posted to this socket again */
 			conn->rx_socket = NULL;
+		}
+
+		/* Enqueue */
+		if (pxTaskWoken == NULL)
+			result = csp_queue_enqueue(conn->rx_queue, &packet, 0);
+		else
+			result = csp_queue_enqueue_isr(conn->rx_queue, &packet, pxTaskWoken);
+
+		if (result != CSP_QUEUE_OK) {
+			printf("ERROR: Connection buffer queue full!\r\n");
+			goto discard_close;
 		}
 
 		return;
@@ -278,7 +279,7 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 
 discard_close:
 	csp_buffer_free(packet);
-	conn->l4data->state = RDP_CLOSE_WAIT;
+	conn->l4data->state = RDP_CLOSED;
 	csp_close(conn);
 	return;
 
@@ -355,7 +356,7 @@ int csp_rdp_send(csp_conn_t* conn, csp_packet_t * packet, int timeout) {
 		return 0;
 
 	if (conn->l4data->state != RDP_OPEN) {
-		csp_debug(CSP_PROTOCOL, "RDP: ERROR cannot send, connection not open!\r\n");
+		csp_debug(CSP_ERROR, "RDP: ERROR cannot send, connection reset by peer!\r\n");
 		return 0;
 	}
 
