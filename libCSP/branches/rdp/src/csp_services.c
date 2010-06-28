@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "arch/csp_time.h"
 
-void csp_ping(uint8_t node, int timeout) {
+void csp_ping(uint8_t node, unsigned int timeout) {
 
 	uint32_t start, time;
 
@@ -115,7 +115,7 @@ void csp_reboot(uint8_t node) {
 	csp_transaction(CSP_PRIO_NORM, node, CSP_REBOOT, 0, &magic_word, sizeof(magic_word), NULL, 0);
 }
 
-void csp_ps(uint8_t node, int timeout) {
+void csp_ps(uint8_t node, unsigned int timeout) {
 
 	/* Open connection */
 	csp_conn_t * conn = csp_connect(CSP_UDP, CSP_PRIO_NORM, node, CSP_PS, 0);
@@ -158,7 +158,7 @@ out:
 
 }
 
-void csp_memfree(uint8_t node, int timeout) {
+void csp_memfree(uint8_t node, unsigned int timeout) {
 
 	uint32_t memfree;
 
@@ -175,7 +175,7 @@ void csp_memfree(uint8_t node, int timeout) {
 
 }
 
-void csp_buf_free(uint8_t node, int timeout) {
+void csp_buf_free(uint8_t node, unsigned int timeout) {
 
 	uint32_t size = 0;
 

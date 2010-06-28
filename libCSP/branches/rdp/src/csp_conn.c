@@ -142,6 +142,11 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 
 void csp_close(csp_conn_t * conn) {
 
+	if (conn == NULL) {
+		csp_debug(CSP_ERROR, "NULL Pointer given to csp_close\r\n");
+		return;
+	}
+
 	if (conn->state == CONN_CLOSED) {
 		csp_debug(CSP_BUFFER, "Conn already closed by transport layer\r\n");
 		return;
@@ -177,7 +182,7 @@ void csp_close(csp_conn_t * conn) {
  * There is no handshake in the CSP protocol
  * @return a pointer to a new connection or NULL
  */
-csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t dport, int timeout) {
+csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t dport, unsigned int timeout) {
 
 	static uint8_t sport = 31;
     

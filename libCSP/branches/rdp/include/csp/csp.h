@@ -64,7 +64,7 @@ typedef enum csp_prio_e {
 typedef enum csp_protocol_e {
 	CSP_UDP = 0,
 	CSP_RDP = 1,
-	CSP_STP = 2
+	CSP_CTP = 2
 } csp_protocol_t;
 
 /** @brief The address of the node */
@@ -152,15 +152,15 @@ typedef struct csp_l4data_s csp_l4data_t;
 /* Implemented in csp_io.c */
 void csp_init(uint8_t my_node_address);
 csp_socket_t * csp_socket();
-csp_conn_t * csp_accept(csp_socket_t * socket, int timeout);
-csp_packet_t * csp_read(csp_conn_t * conn, int timeout);
-int csp_send(csp_conn_t * conn, csp_packet_t * packet, int timeout);
-int csp_send_direct(csp_id_t idout, csp_packet_t * packet, int timeout);
-int csp_transaction(uint8_t prio, uint8_t dest, uint8_t port, int timeout, void * outbuf, int outlen, void * inbuf, int inlen);
-int csp_transaction_persistent(csp_conn_t * conn, int timeout, void * outbuf, int outlen, void * inbuf, int inlen);
+csp_conn_t * csp_accept(csp_socket_t * socket, unsigned int timeout);
+csp_packet_t * csp_read(csp_conn_t * conn, unsigned int timeout);
+int csp_send(csp_conn_t * conn, csp_packet_t * packet, unsigned int timeout);
+int csp_send_direct(csp_id_t idout, csp_packet_t * packet, unsigned int timeout);
+int csp_transaction(uint8_t prio, uint8_t dest, uint8_t port, unsigned int timeout, void * outbuf, int outlen, void * inbuf, int inlen);
+int csp_transaction_persistent(csp_conn_t * conn, unsigned int timeout, void * outbuf, int outlen, void * inbuf, int inlen);
 
 /* Implemented in csp_conn.c */
-csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t port, int timeout);
+csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, uint8_t port, unsigned int timeout);
 void csp_close(csp_conn_t * conn);
 int csp_conn_dport(csp_conn_t * conn);
 int csp_conn_sport(csp_conn_t * conn);
@@ -180,11 +180,11 @@ void csp_route_start_task(unsigned int task_stack_size);
 
 /* Implemented in csp_services.c */
 void csp_service_handler(csp_conn_t * conn, csp_packet_t * packet);
-void csp_ping(uint8_t node, int timeout);
+void csp_ping(uint8_t node, unsigned int timeout);
 void csp_ping_noreply(uint8_t node);
-void csp_ps(uint8_t node, int timeout);
-void csp_memfree(uint8_t node, int timeout);
-void csp_buf_free(uint8_t node, int timeout);
+void csp_ps(uint8_t node, unsigned int timeout);
+void csp_memfree(uint8_t node, unsigned int timeout);
+void csp_buf_free(uint8_t node, unsigned int timeout);
 void csp_reboot(uint8_t node);
 
 /**

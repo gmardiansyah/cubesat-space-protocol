@@ -81,7 +81,7 @@ csp_socket_t * csp_socket(void) {
  * @param timeout use portMAX_DELAY for infinite timeout
  * @return Return pointer to csp_conn_t or NULL if timeout was reached
  */
-csp_conn_t * csp_accept(csp_socket_t * sock, int timeout) {
+csp_conn_t * csp_accept(csp_socket_t * sock, unsigned int timeout) {
 
     if (sock == NULL)
         return NULL;
@@ -107,7 +107,7 @@ csp_conn_t * csp_accept(csp_socket_t * sock, int timeout) {
  * @param timeout timeout in ticks, use portMAX_DELAY for infinite blocking time
  * @return Returns pointer to csp_packet_t, which you MUST free yourself, either by calling csp_buffer_free() or reusing the buffer for a new csp_send.
  */
-csp_packet_t * csp_read(csp_conn_t * conn, int timeout) {
+csp_packet_t * csp_read(csp_conn_t * conn, unsigned int timeout) {
 
 	if (conn == NULL)
 		return NULL;
@@ -127,7 +127,7 @@ csp_packet_t * csp_read(csp_conn_t * conn, int timeout) {
  * @param timeout a timeout to wait for TX to complete. NOTE: not all underlying drivers supports flow-control.
  * @return returns 1 if successful and 0 otherwise. you MUST free the frame yourself if the transmission was not successful.
  */
-int csp_send_direct(csp_id_t idout, csp_packet_t * packet, int timeout) {
+int csp_send_direct(csp_id_t idout, csp_packet_t * packet, unsigned int timeout) {
 
 	if (packet == NULL) {
 		csp_debug(CSP_ERROR, "Invalid call to csp_send_direct\r\n");
@@ -154,9 +154,9 @@ int csp_send_direct(csp_id_t idout, csp_packet_t * packet, int timeout) {
  * @param timeout a timeout to wait for TX to complete. NOTE: not all underlying drivers supports flow-control.
  * @return returns 1 if successful and 0 otherwise. you MUST free the frame yourself if the transmission was not successful.
  */
-int csp_send(csp_conn_t* conn, csp_packet_t * packet, int timeout) {
+int csp_send(csp_conn_t* conn, csp_packet_t * packet, unsigned int timeout) {
 
-	if (conn == NULL) {
+	if ((conn == NULL) || (packet == NULL)) {
 		csp_debug(CSP_ERROR, "Invalid call to csp_send\r\n");
 		return 0;
 	}
@@ -186,7 +186,7 @@ int csp_send(csp_conn_t* conn, csp_packet_t * packet, int timeout) {
  * @param inlen length of expected reply, -1 for unknown size (note inbuf MUST be large enough)
  * @return
  */
-int csp_transaction_persistent(csp_conn_t * conn, int timeout, void * outbuf, int outlen, void * inbuf, int inlen) {
+int csp_transaction_persistent(csp_conn_t * conn, unsigned int timeout, void * outbuf, int outlen, void * inbuf, int inlen) {
 
 	/* Stupid way to implement max() but more portable than macros */
 	int size = outlen;
@@ -246,7 +246,7 @@ int csp_transaction_persistent(csp_conn_t * conn, int timeout, void * outbuf, in
  * @param inlen length of expected reply, -1 for unknown size (note inbuf MUST be large enough)
  * @return Return 1 or reply size if successful, 0 if error or incoming length does not match or -1 if timeout was reached
  */
-int csp_transaction(uint8_t prio, uint8_t dest, uint8_t port, int timeout, void * outbuf, int outlen, void * inbuf, int inlen) {
+int csp_transaction(uint8_t prio, uint8_t dest, uint8_t port, unsigned int timeout, void * outbuf, int outlen, void * inbuf, int inlen) {
 
 	csp_conn_t * conn = csp_connect(CSP_UDP, prio, dest, port, 0);
 	if (conn == NULL)
