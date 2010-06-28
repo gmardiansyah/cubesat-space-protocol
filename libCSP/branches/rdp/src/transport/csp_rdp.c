@@ -388,11 +388,11 @@ retry:
 	csp_debug(CSP_PROTOCOL, "RDP: AC: Sending SYN\r\n");
 
 	csp_bin_sem_wait(&conn->l4data->tx_wait, 0);
+	conn->l4data->state = RDP_SYN_SENT;
 	if (csp_rdp_send_cmp(conn, 0, 1, 0, conn->l4data->snd_iss, 0) == 0) {
 		conn->l4data->state = RDP_CLOSED;
 		return 0;
 	}
-	conn->l4data->state = RDP_SYN_SENT;
 
 	csp_debug(CSP_PROTOCOL, "RDP: AC: Waiting for SYN/ACK reply...\r\n");
 
@@ -456,13 +456,10 @@ int csp_rdp_allocate(csp_conn_t * conn) {
 	conn->l4data->state = RDP_CLOSED;
 
 	/* Create a binary semaphore to wait on for tasks */
-	csp_bin_sem_create(&conn->l4data->tx_wait);
-#ifdef _CSP_FREERTOS_
-	if (conn->l4data->tx_wait == NULL) {
+	if (csp_bin_sem_create(&conn->l4data->tx_wait) != CSP_SEMAPHORE_OK) {
 		csp_free(conn->l4data);
 		return 0;
 	}
-#endif
 
 	return 1;
 
@@ -481,10 +478,7 @@ void csp_rdp_close(csp_conn_t * conn) {
 
 	/* Deallocate memory */
 	if (conn->l4data != NULL) {
-#ifdef _CSP_FREERTOS_
-		if (conn->l4data->tx_wait != NULL)
-			csp_free(conn->l4data->tx_wait);
-#endif
+		csp_bin_sem_remove(&conn->l4data->tx_wait);
 		csp_free(conn->l4data);
 		conn->l4data = NULL;
 	}
