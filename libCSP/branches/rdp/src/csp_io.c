@@ -204,7 +204,6 @@ int csp_transaction_persistent(csp_conn_t * conn, int timeout, void * outbuf, in
 
 	if (!csp_send(conn, packet, 0)) {
 		printf("Send failed\r\n");
-		csp_buffer_free(packet);
 		return 0;
 	}
 
