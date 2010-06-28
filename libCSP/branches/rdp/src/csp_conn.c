@@ -310,3 +310,13 @@ inline int csp_conn_src(csp_conn_t * conn) {
     return conn->idin.src;
 
 }
+
+/**
+ * @param conn pointer to connection structure
+ * @return Protocol of incomming connection
+ */
+inline int csp_conn_protocol(csp_conn_t * conn) {
+
+    return conn->idin.protocol;
+
+}
