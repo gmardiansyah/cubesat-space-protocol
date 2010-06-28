@@ -215,6 +215,7 @@ int csp_transaction_persistent(csp_conn_t * conn, int timeout, void * outbuf, in
 	packet = csp_read(conn, timeout);
 	if (packet == NULL) {
 		printf("Read failed\r\n");
+		csp_buffer_free(packet);
 		return 0;
 	}
 
