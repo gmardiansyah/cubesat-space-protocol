@@ -256,7 +256,7 @@ void csp_conn_print_table(void) {
 
     for (i = 0; i < CONN_MAX; i++) {
 		conn = &arr_conn[i];
-		printf("[%02u] %s %u -> %u, %u -> %u, sock: %p\r\n", i, (conn->state ? "OPEN" : "CLOSED"), conn->idin.src, conn->idin.dst, conn->idin.dport, conn->idin.sport, conn->rx_socket);
+		printf("[%02u %p] %s %u -> %u, %u -> %u, sock: %p\r\n", i, conn, (conn->state ? "OPEN" : "CLOSED"), conn->idin.src, conn->idin.dst, conn->idin.dport, conn->idin.sport, conn->rx_socket);
 
 		switch(conn->idin.protocol) {
 		case CSP_RDP:
