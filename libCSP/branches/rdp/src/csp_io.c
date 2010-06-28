@@ -101,7 +101,7 @@ csp_conn_t * csp_accept(csp_socket_t * sock, int timeout) {
  * Read data from a connection
  * This fuction uses the RX queue of a connection to receive a packet
  * If no packet is available and a timeout has been specified
- * The call will blovk.
+ * The call will block.
  * Do NOT call this from ISR
  * @param conn pointer to connection
  * @param timeout timeout in ticks, use portMAX_DELAY for infinite blocking time

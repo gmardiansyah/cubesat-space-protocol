@@ -35,6 +35,10 @@ int csp_bin_sem_create(csp_bin_sem_handle_t * sem) {
     }
 }
 
+int csp_bin_sem_remove(csp_bin_sem_handle_t * sem) {
+	return CSP_SEMAPHORE_OK;
+}
+
 int csp_bin_sem_wait(csp_bin_sem_handle_t * sem, int timeout) {
     struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts))
