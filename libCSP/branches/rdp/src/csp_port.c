@@ -58,7 +58,7 @@ int csp_listen(csp_socket_t * socket, size_t conn_queue_length) {
 int csp_bind(csp_socket_t * socket, uint8_t port) {
     
 	if (port > 16) {
-		printf("Only ports from 0-15 (and 16) are available for incoming ports\r\n");
+		csp_debug(CSP_ERROR, "Only ports from 0-15 (and 16) are available for incoming ports\r\n");
 		return -1;
 	}
 
@@ -66,7 +66,7 @@ int csp_bind(csp_socket_t * socket, uint8_t port) {
 
 	/* Check if port number is valid */
 	if (ports[port].state != PORT_CLOSED) {
-		printf("ERROR: Port %d is already in use\r\n", port);
+		csp_debug(CSP_ERROR, "Port %d is already in use\r\n", port);
 		return -1;
 	}
 
@@ -86,7 +86,7 @@ int csp_bind(csp_socket_t * socket, uint8_t port) {
 int csp_bind_callback(void (*callback) (csp_conn_t*), uint8_t port) {
 
 	if (port > 16) {
-		printf("Only ports from 0-15 (and 16) are available for incoming ports\r\n");
+		csp_debug(CSP_ERROR, "Only ports from 0-15 (and 16) are available for incoming ports\r\n");
 		return -1;
 	}
 
@@ -94,7 +94,7 @@ int csp_bind_callback(void (*callback) (csp_conn_t*), uint8_t port) {
 
 	/* Check if port number is valid */
 	if (ports[port].state != PORT_CLOSED) {
-		printf("ERROR: Port %d is already in use\r\n", port);
+		csp_debug(CSP_ERROR, "Port %d is already in use\r\n", port);
 		return -1;
 	}
 
