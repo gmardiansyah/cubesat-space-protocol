@@ -31,9 +31,9 @@ static uint8_t levels_enable[6] = {
 		1,	// Info
 		1,	// Error
 		1,	// Warn
-		1,	// Buffer
+		0,	// Buffer
 		1,	// Packet
-		0	// Protocol
+		1	// Protocol
 };
 
 void csp_debug(csp_debug_level_t level, const char * format, ...) {
@@ -48,6 +48,24 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 	case CSP_PACKET: 	if (!levels_enable[CSP_PACKET]) return; 	color = "\E[0;32m"; break;
 	case CSP_PROTOCOL:  if (!levels_enable[CSP_PROTOCOL]) return; 	color = "\E[0;94m"; break;
 	}
+
+#if defined(_CSP_POSIX_)
+#include <pthread.h>
+
+	extern pthread_t handle_server;
+	extern pthread_t handle_console;
+	extern pthread_t handle_rdptestserver;
+	extern pthread_t handle_lo;
+
+	if (pthread_self() == handle_server) {
+		printf("\t\t\t\t\t\t\t\t");
+	} else if (pthread_self() == handle_console) {
+	} else if (pthread_self() == handle_rdptestserver) {
+		printf("\t\t\t\t\t\t\t\t");
+	} else if (pthread_self() == handle_lo) {
+		printf("\t\t\t\t");
+	}
+#endif
 
 	printf("%s", color);
 
