@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* CSP includes */
 #include <csp/csp.h>
+#include <csp/csp_platform.h>
 
 #include "arch/csp_semaphore.h"
 #include "arch/csp_queue.h"
@@ -60,6 +61,20 @@ void * vTaskLo(void * pvParameters) {
 
 		if (packet == NULL)
 			continue;
+
+#if 1
+#if defined(_CSP_POSIX_)
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+		/* random pause */
+		struct timespec ts;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		srand(ts.tv_nsec);
+		usleep(rand() % 1000);
+#endif
+#endif
 
 		/* Send back into CSP, notice calling from task so last argument must be NULL! */
 		csp_new_packet(packet, csp_lo_tx, NULL);

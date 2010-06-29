@@ -37,6 +37,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 /* Static connection pool and lock */
 static csp_conn_t arr_conn[CONN_MAX];
 
+void inline csp_conn_wait(csp_conn_t * conn) {
+	if (csp_bin_sem_wait(&conn->lock, 1000) == CSP_SEMAPHORE_ERROR) {
+		csp_debug(CSP_ERROR, "Oh no, this is not good! Timeout in csp_conn_wait()\r\n");
+	}
+}
+
+void inline csp_conn_release(csp_conn_t * conn) {
+	csp_bin_sem_post(&conn->lock);
+}
+
 /** csp_conn_init
  * Initialises the connection pool
  */
@@ -47,6 +57,7 @@ void csp_conn_init(void) {
         arr_conn[i].rx_queue = csp_queue_create(CONN_QUEUE_LENGTH, sizeof(csp_packet_t *));
 		arr_conn[i].state = CONN_CLOSED;
 		arr_conn[i].l4data = NULL;
+		csp_bin_sem_create(&arr_conn[i].lock);
 	}
 
 }
@@ -95,13 +106,22 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 		conn = &arr_conn[i];
 		if (conn->state == CONN_CLOSED) {
 			conn->state = CONN_OPEN;
-			csp_conn_last_given = i;
             break;
         }
 		i = (i + 1) % CONN_MAX;								// Increment by one
 	}
 	CSP_EXIT_CRITICAL();
 
+	if (i == csp_conn_last_given) {
+		csp_debug(CSP_ERROR, "No more free connections\r\n");
+		return NULL;
+	}
+
+	csp_conn_last_given = i;
+
+	/* No lock is needed here, because nobody else
+	 * has a reference to this connection yet.
+	 */
 	conn->idin = idin;
 	conn->idout = idout;
 	conn->rx_socket = NULL;
@@ -123,15 +143,34 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 		result = 1;
 	}
     
-    if (result == 1) {
-    	return conn;
-    } else {
+    if (result == 0) {
     	conn->state = CONN_CLOSED;
     	return NULL;
     }
 
-    return NULL;
-  
+    return conn;
+
+}
+
+/** csp_close_wait
+ * This function must be called whenever the network stack wants to close the connection.
+ * The philosophy is that only the "owner" of the connection handle, which is the task,
+ * may close the connection.
+ * Sometimes when the network stack has a new connection but not yet passed this to userspace,
+ * the network stack should call csp_close directly, otherwise it should call csp_close_wait.
+ * This function posts a null pointer to the qonnection RX queue, this will make the userspace
+ * application close the connection.
+ * @param conn pointer to connetion structure
+ */
+void csp_close_wait(csp_conn_t * conn) {
+
+    /* Try to wake any tasks */
+    void * null_pointer = NULL;
+    csp_queue_enqueue(conn->rx_queue, &null_pointer, 0);
+
+    /* Set state */
+    conn->state = CONN_CLOSE_WAIT;
+
 }
 
 /** csp_close
@@ -151,7 +190,7 @@ void csp_close(csp_conn_t * conn) {
 		csp_debug(CSP_BUFFER, "Conn already closed by transport layer\r\n");
 		return;
 	}
-   
+
 	/* Ensure connection queue is empty */
 	csp_packet_t * packet;
     while(csp_queue_dequeue(conn->rx_queue, &packet, 0) == CSP_QUEUE_OK) {
@@ -165,10 +204,6 @@ void csp_close(csp_conn_t * conn) {
 		csp_rdp_close(conn);
 		break;
 	}
-
-    /* Try to wake any tasks */
-    void * null_pointer = NULL;
-    csp_queue_enqueue(conn->rx_queue, &null_pointer, 0);
 
     /* Set to closed */
     conn->state = CONN_CLOSED;
@@ -261,7 +296,7 @@ void csp_conn_print_table(void) {
 
     for (i = 0; i < CONN_MAX; i++) {
 		conn = &arr_conn[i];
-		printf("[%02u %p] %s %u -> %u, %u -> %u, sock: %p\r\n", i, conn, (conn->state ? "OPEN" : "CLOSED"), conn->idin.src, conn->idin.dst, conn->idin.dport, conn->idin.sport, conn->rx_socket);
+		printf("[%02u %p] S:%u, %u -> %u, %u -> %u, sock: %p\r\n", i, conn, conn->state, conn->idin.src, conn->idin.dst, conn->idin.dport, conn->idin.sport, conn->rx_socket);
 
 		switch(conn->idin.protocol) {
 		case CSP_RDP:

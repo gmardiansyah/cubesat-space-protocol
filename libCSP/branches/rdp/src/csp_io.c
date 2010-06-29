@@ -109,7 +109,7 @@ csp_conn_t * csp_accept(csp_socket_t * sock, unsigned int timeout) {
  */
 csp_packet_t * csp_read(csp_conn_t * conn, unsigned int timeout) {
 
-	if (conn == NULL)
+	if ((conn == NULL) || (conn->state != CONN_OPEN))
 		return NULL;
 
 	csp_packet_t * packet = NULL;
@@ -156,7 +156,7 @@ int csp_send_direct(csp_id_t idout, csp_packet_t * packet, unsigned int timeout)
  */
 int csp_send(csp_conn_t* conn, csp_packet_t * packet, unsigned int timeout) {
 
-	if ((conn == NULL) || (packet == NULL)) {
+	if ((conn == NULL) || (packet == NULL) || (conn->state != CONN_OPEN)) {
 		csp_debug(CSP_ERROR, "Invalid call to csp_send\r\n");
 		return 0;
 	}

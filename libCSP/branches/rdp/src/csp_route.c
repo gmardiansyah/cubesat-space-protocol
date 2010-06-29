@@ -155,9 +155,20 @@ csp_conn_t * csp_route(csp_id_t id, nexthop_t avoid_nexthop, CSP_BASE_TYPE * pxT
 	/* Search for an existing connection */
 	conn = csp_conn_find(id.ext, CSP_ID_CONN_MASK);
 
-	/* If a conneciton was found return that one. */
-	if (conn != NULL)
+	/* If a conneciton was found */
+	if (conn != NULL) {
+
+		/* Use the close_wait state to discard messages */
+		if (conn->state == CONN_CLOSE_WAIT) {
+			csp_debug(CSP_WARN, "Router discarded packet: CLOSE_WAIT\r\n");
+			return NULL;
+		}
+
+		/* Otherwise, accept message */
 		return conn;
+
+	}
+
 
 	/* See if the packet belongs to this node
 	 * Try local fist: */
