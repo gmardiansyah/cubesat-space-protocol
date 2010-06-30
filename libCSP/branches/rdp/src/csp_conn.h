@@ -56,6 +56,6 @@ csp_conn_t * csp_conn_find(uint32_t id, uint32_t mask);
 csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout);
 void csp_close_wait(csp_conn_t * conn);
 void csp_conn_release(csp_conn_t * conn);
-void csp_conn_wait(csp_conn_t * conn);
+int csp_conn_wait(csp_conn_t * conn);
 
 #endif // _CSP_CONN_H_
