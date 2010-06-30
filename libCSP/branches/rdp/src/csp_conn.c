@@ -37,13 +37,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 /* Static connection pool and lock */
 static csp_conn_t arr_conn[CONN_MAX];
 
-void inline csp_conn_wait(csp_conn_t * conn) {
+int inline csp_conn_wait(csp_conn_t * conn) {
+	csp_debug(CSP_WARN, "CONN: WAIT %p\r\n", conn);
 	if (csp_bin_sem_wait(&conn->lock, 1000) == CSP_SEMAPHORE_ERROR) {
 		csp_debug(CSP_ERROR, "Oh no, this is not good! Timeout in csp_conn_wait()\r\n");
+		return 0;
 	}
+	csp_debug(CSP_WARN, "CONN: DONE\r\n");
+	if (conn->state == CONN_CLOSED)
+		return 0;
+	return 1;
 }
 
 void inline csp_conn_release(csp_conn_t * conn) {
+	csp_debug(CSP_WARN, "CONN: POST %p\r\n", conn);
 	csp_bin_sem_post(&conn->lock);
 }
 
