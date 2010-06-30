@@ -12,14 +12,15 @@
 #define CSP_TRANSPORT_H_
 
 /** ARRIVING SEGMENT */
-void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE * pxTaskWoken);
-void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE * pxTaskWoken);
+void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet);
+void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet);
 
 /** RDP: USER REQUESTS */
 int csp_rdp_connect_active(csp_conn_t * conn, int timeout);
 int csp_rdp_allocate(csp_conn_t * conn);
 void csp_rdp_close(csp_conn_t * conn);
 void csp_rdp_conn_print(csp_conn_t * conn);
-int csp_rdp_send(csp_conn_t* conn, csp_packet_t * packet, int timeout);
+int csp_rdp_send(csp_conn_t * conn, csp_packet_t * packet, int timeout);
+void csp_rdp_flush_acked(csp_conn_t * conn);
 
 #endif /* CSP_TRANSPORT_H_ */

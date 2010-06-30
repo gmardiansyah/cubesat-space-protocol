@@ -54,6 +54,31 @@ void inline csp_conn_release(csp_conn_t * conn) {
 	csp_bin_sem_post(&conn->lock);
 }
 
+/** csp_conn_timeout
+ * Walk trough open connections and check if anything needs to be
+ * kicked, closed or retransmitted.
+ */
+void csp_conn_check_timeouts(void) {
+
+	/* Loop */
+	int i;
+	for (i = 0; i < CONN_MAX; i++) {
+
+		/* Only look at open connetions */
+		if (arr_conn[i].state == CONN_CLOSED)
+			continue;
+
+		/* Check the protocol and higher layers */
+		switch (arr_conn[i].idin.protocol) {
+		case CSP_RDP:
+			csp_rdp_flush_acked(&arr_conn[i]);
+		}
+
+
+	}
+
+}
+
 /** csp_conn_init
  * Initialises the connection pool
  */
@@ -132,6 +157,7 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 	conn->idin = idin;
 	conn->idout = idout;
 	conn->rx_socket = NULL;
+	conn->open_timestamp = csp_get_ms();
 
 	/* Ensure connection queue is empty */
 	csp_packet_t * packet;

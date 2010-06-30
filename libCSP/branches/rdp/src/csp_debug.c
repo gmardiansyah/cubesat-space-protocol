@@ -55,14 +55,14 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 	extern pthread_t handle_server;
 	extern pthread_t handle_console;
 	extern pthread_t handle_rdptestserver;
-	extern pthread_t handle_lo;
+	extern pthread_t handle_router;
 
 	if (pthread_self() == handle_server) {
 		printf("\t\t\t\t\t\t\t\t");
 	} else if (pthread_self() == handle_console) {
 	} else if (pthread_self() == handle_rdptestserver) {
 		printf("\t\t\t\t\t\t\t\t");
-	} else if (pthread_self() == handle_lo) {
+	} else if (pthread_self() == handle_router) {
 		printf("\t\t\t\t");
 	}
 #endif

@@ -44,6 +44,7 @@ struct csp_conn_s {
     csp_queue_handle_t rx_socket;	// Socket to be "woken" when first packet is ready
     csp_bin_sem_handle_t lock;		// Semaphore used to lock a connection
     csp_l4data_t * l4data;			// Pointer to a layer4 info area (Opaque pointer)
+    uint32_t open_timestamp;		// Time the connection was opened
 };
 
 /** @brief Socket struct */
@@ -57,5 +58,6 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout);
 void csp_close_wait(csp_conn_t * conn);
 void csp_conn_release(csp_conn_t * conn);
 int csp_conn_wait(csp_conn_t * conn);
+void csp_conn_check_timeouts(void);
 
 #endif // _CSP_CONN_H_

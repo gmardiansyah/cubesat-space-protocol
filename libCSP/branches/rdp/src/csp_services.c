@@ -32,6 +32,11 @@ void csp_ping(uint8_t node, unsigned int timeout) {
 
 	uint32_t start, time;
 
+	printf("Ping node %u: ", node);
+
+	/* Counter */
+	start = csp_get_ms();
+
 	/* Open connection */
 	csp_conn_t * conn = csp_connect(CSP_RDP, CSP_PRIO_NORM, node, CSP_PING, timeout);
 	if (conn == NULL)
@@ -47,11 +52,6 @@ void csp_ping(uint8_t node, unsigned int timeout) {
 
 	packet->data[0] = 0x55;
 	packet->length = 1;
-
-	printf("Ping node %u: ", node);
-
-	/* Counter */
-	start = csp_get_ms();
 
 	/* Try to send frame */
 	if (!csp_send(conn, packet, 0))
