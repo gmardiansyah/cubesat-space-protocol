@@ -15,17 +15,10 @@
 #include "../csp_port.h"
 #include "../csp_conn.h"
 
-void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE * pxTaskWoken) {
-
-	int result;
+void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet) {
 
 	/* Enqueue */
-	if (pxTaskWoken == NULL)
-		result = csp_queue_enqueue(conn->rx_queue, &packet, 0);
-	else
-		result = csp_queue_enqueue_isr(conn->rx_queue, &packet, pxTaskWoken);
-
-	if (result != CSP_QUEUE_OK) {
+	if (csp_queue_enqueue(conn->rx_queue, &packet, 0) != CSP_QUEUE_OK) {
 		printf("ERROR: Connection buffer queue full!\r\n");
 		csp_buffer_free(packet);
 		return;
@@ -33,13 +26,7 @@ void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet, CSP_BASE_TYPE 
 
 	/* Try to queue up the new connection pointer */
 	if (conn->rx_socket != NULL) {
-		int result;
-		if (pxTaskWoken == NULL)
-			result = csp_queue_enqueue(conn->rx_socket, &conn, 0);
-		else
-			result = csp_queue_enqueue_isr(conn->rx_socket, &conn, pxTaskWoken);
-
-		if (result == CSP_QUEUE_FULL) {
+		if (csp_queue_enqueue(conn->rx_socket, &conn, 0) == CSP_QUEUE_FULL) {
 			printf("Warning Routing Queue Full\r\n");
 			/* Don't call csp_conn_close, since this might be ISR context. */
 			conn->state = CONN_CLOSED;
