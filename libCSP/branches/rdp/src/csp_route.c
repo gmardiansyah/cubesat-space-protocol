@@ -107,8 +107,8 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 		srand(ts.tv_nsec);
 		usleep(rand() % 1000);
 
-		if (rand() % 1000 > 500) {
-			csp_debug(CSP_INFO, "Dropping packet, MUAHAHA\r\n");
+		if (rand() % 1000 > 100) {
+			csp_debug(CSP_WARN, "Dropping packet, MUAHAHA\r\n");
 			csp_buffer_free(input.packet);
 			continue;
 		}
