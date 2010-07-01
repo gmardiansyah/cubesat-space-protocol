@@ -27,13 +27,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <csp/csp.h>
 #include <csp/csp_config.h>
 
-static uint8_t levels_enable[6] = {
+static uint8_t levels_enable[7] = {
 		1,	// Info
 		1,	// Error
 		1,	// Warn
 		0,	// Buffer
 		1,	// Packet
-		1	// Protocol
+		1,	// Protocol
+		0	// Locks
 };
 
 void csp_debug(csp_debug_level_t level, const char * format, ...) {
@@ -47,6 +48,7 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 	case CSP_BUFFER: 	if (!levels_enable[CSP_BUFFER]) return; 	color = "\E[0;33m"; break;
 	case CSP_PACKET: 	if (!levels_enable[CSP_PACKET]) return; 	color = "\E[0;32m"; break;
 	case CSP_PROTOCOL:  if (!levels_enable[CSP_PROTOCOL]) return; 	color = "\E[0;94m"; break;
+	case CSP_LOCK:		if (!levels_enable[CSP_LOCK]) return; 		color = "\E[0;96m"; break;
 	}
 
 #if defined(_CSP_POSIX_)
@@ -81,8 +83,8 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 }
 
 void csp_debug_toggle_level(csp_debug_level_t level) {
-	if (level >= 6) {
-		printf("Max level is 5\r\n");
+	if (level >= 7) {
+		printf("Max level is 6\r\n");
 		return;
 	}
 	levels_enable[level] = (levels_enable[level]) ? 0 : 1;

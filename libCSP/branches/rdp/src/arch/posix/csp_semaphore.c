@@ -40,6 +40,12 @@ int csp_bin_sem_remove(csp_bin_sem_handle_t * sem) {
 }
 
 int csp_bin_sem_wait(csp_bin_sem_handle_t * sem, int timeout) {
+
+	if (sem == NULL)
+		return 0;
+
+	csp_debug(CSP_LOCK, "Wait: %p\r\n", sem);
+
     struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts))
     	return CSP_SEMAPHORE_ERROR;
@@ -54,6 +60,10 @@ int csp_bin_sem_wait(csp_bin_sem_handle_t * sem, int timeout) {
 
     ts.tv_nsec = (ts.tv_nsec + nsec) % 1000000000;
 
+    int value;
+    sem_getvalue(sem, &value);
+    csp_debug(CSP_LOCK, "Sem value %u\r\n", value);
+
     if (sem_timedwait(sem, &ts) == 0) {
         return CSP_SEMAPHORE_OK;
     } else {
@@ -67,7 +77,14 @@ int csp_bin_sem_post(csp_bin_sem_handle_t * sem) {
 }
 
 int csp_bin_sem_post_isr(csp_bin_sem_handle_t * sem, CSP_BASE_TYPE * task_woken) {
-    *task_woken = 0; 
+	csp_debug(CSP_LOCK, "Post: %p\r\n", sem);
+    *task_woken = 0;
+
+    int value;
+    sem_getvalue(sem, &value);
+    if (value > 0)
+    	return CSP_SEMAPHORE_OK;
+
     if (sem_post(sem) == 0) {
         return CSP_SEMAPHORE_OK;
     } else {

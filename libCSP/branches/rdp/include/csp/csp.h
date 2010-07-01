@@ -231,6 +231,7 @@ typedef enum csp_debug_level_e {
 	CSP_BUFFER = 3,
 	CSP_PACKET = 4,
 	CSP_PROTOCOL = 5,
+	CSP_LOCK = 6,
 } csp_debug_level_t;
 
 void csp_debug(csp_debug_level_t level, const char * format, ...);
