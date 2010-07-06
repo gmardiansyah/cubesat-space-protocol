@@ -37,20 +37,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 /* Static connection pool and lock */
 static csp_conn_t arr_conn[CONN_MAX];
 
-int inline csp_conn_wait(csp_conn_t * conn) {
-	if (csp_bin_sem_wait(&conn->lock, 1000) == CSP_SEMAPHORE_ERROR) {
-		csp_debug(CSP_ERROR, "Oh no, this is not good! Timeout in csp_conn_wait()\r\n");
-		return 0;
-	}
-	if (conn->state == CONN_CLOSED)
-		return 0;
-	return 1;
-}
-
-void inline csp_conn_release(csp_conn_t * conn) {
-	csp_bin_sem_post(&conn->lock);
-}
-
 /** csp_conn_timeout
  * Walk trough open connections and check if anything needs to be
  * kicked, closed or retransmitted.
@@ -66,10 +52,12 @@ void csp_conn_check_timeouts(void) {
 			continue;
 
 		/* Check the protocol and higher layers */
+#if CSP_USE_RDP
 		switch (arr_conn[i].idin.protocol) {
 		case CSP_RDP:
 			csp_rdp_flush_acked(&arr_conn[i]);
 		}
+#endif
 
 
 	}
@@ -86,7 +74,6 @@ void csp_conn_init(void) {
         arr_conn[i].rx_queue = csp_queue_create(CONN_QUEUE_LENGTH, sizeof(csp_packet_t *));
 		arr_conn[i].state = CONN_CLOSED;
 		arr_conn[i].l4data = NULL;
-		csp_bin_sem_create(&arr_conn[i].lock);
 	}
 
 }
@@ -164,14 +151,15 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 	}
 
     /* Ensure l4 knows this conn is opening */
-	int result;
+	int result = 1;
+
+#if CSP_USE_RDP
     switch(conn->idin.protocol) {
 	case CSP_RDP:
 		result = csp_rdp_allocate(conn);
 		break;
-	default:
-		result = 1;
 	}
+#endif
     
     if (result == 0) {
     	conn->state = CONN_CLOSED;
@@ -229,11 +217,13 @@ void csp_close(csp_conn_t * conn) {
     }
 
     /* Ensure l4 knows this conn is closing */
+#if CSP_USE_RDP
     switch(conn->idin.protocol) {
-	case CSP_RDP:
+    case CSP_RDP:
 		csp_rdp_close(conn);
 		break;
 	}
+#endif
 
     /* Set to closed */
     conn->state = CONN_CLOSED;
@@ -294,14 +284,14 @@ csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, ui
     	return NULL;
 
     /* Call Transport Layer connect */
-    int result;
+    int result = 1;
+#if CSP_USE_RDP
     switch(protocol) {
     case CSP_RDP:
     	result = csp_rdp_connect_active(conn, timeout);
     	break;
-    default:
-    	result = 1;
     }
+#endif
 
     /* If the transport layer has failed to connect
      * deallocate connetion structure again and return NULL
@@ -328,11 +318,14 @@ void csp_conn_print_table(void) {
 		conn = &arr_conn[i];
 		printf("[%02u %p] S:%u, %u -> %u, %u -> %u, sock: %p\r\n", i, conn, conn->state, conn->idin.src, conn->idin.dst, conn->idin.dport, conn->idin.sport, conn->rx_socket);
 
+#if CSP_USE_RDP
 		switch(conn->idin.protocol) {
 		case CSP_RDP:
 			csp_rdp_conn_print(conn);
 			break;
 		}
+#endif
+
     }
 }
 
