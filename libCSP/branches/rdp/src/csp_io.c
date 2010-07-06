@@ -162,11 +162,13 @@ int csp_send(csp_conn_t* conn, csp_packet_t * packet, unsigned int timeout) {
 	}
 
 	int result = 1;
+#if CSP_USE_RDP
 	switch(conn->idout.protocol) {
 	case CSP_RDP:
 		result = csp_rdp_send(conn, packet, timeout);
 		break;
 	}
+#endif
 
 	if (result == 0)
 		return 0;

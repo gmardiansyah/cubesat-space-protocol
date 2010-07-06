@@ -107,7 +107,7 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 		srand(ts.tv_nsec);
 		usleep(rand() % 1000);
 
-		if (rand() % 1000 > 100) {
+		if (rand() % 1000 > 500) {
 			csp_debug(CSP_WARN, "Dropping packet, MUAHAHA\r\n");
 			csp_buffer_free(input.packet);
 			continue;
@@ -200,9 +200,11 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 
 		/* Pass packet to the right transport module */
 		switch(packet->id.protocol) {
+#if CSP_USE_RDP
 		case CSP_RDP:
 			csp_rdp_new_packet(conn, packet);
 			break;
+#endif
 		case CSP_UDP:
 		default:
 			csp_udp_new_packet(conn, packet);
