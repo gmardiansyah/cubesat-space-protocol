@@ -166,6 +166,8 @@ int csp_conn_dport(csp_conn_t * conn);
 int csp_conn_sport(csp_conn_t * conn);
 int csp_conn_dst(csp_conn_t * conn);
 int csp_conn_src(csp_conn_t * conn);
+int csp_conn_protocol(csp_conn_t * conn);
+void csp_conn_print_table(void);
 
 /* Implemented in csp_port.c */
 int csp_listen(csp_socket_t * socket, size_t conn_queue_length);
@@ -223,6 +225,8 @@ void csp_buffer_free(void * packet);
  */
 int csp_buffer_remaining(void);
 
+void csp_buffer_print_table(void);
+
 /* CSP debug printf - implemented in arch/x/csp_debug.c */
 typedef enum csp_debug_level_e {
 	CSP_INFO = 0,
@@ -236,5 +240,7 @@ typedef enum csp_debug_level_e {
 
 void csp_debug(csp_debug_level_t level, const char * format, ...);
 void csp_debug_toggle_level(csp_debug_level_t level);
+
+
 
 #endif // _CSP_H_

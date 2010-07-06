@@ -86,7 +86,7 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 		csp_conn_check_timeouts();
 
 		/* Receive input */
-		if (csp_queue_dequeue(router_input_fifo, &input, 10) != CSP_QUEUE_OK)
+		if (csp_queue_dequeue(router_input_fifo, &input, 50) != CSP_QUEUE_OK)
 			continue;
 
 		/* Discard invalid */
@@ -95,7 +95,7 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 			continue;
 		}
 
-#if 1
+#if 0
 #if defined(_CSP_POSIX_)
 #include <unistd.h>
 #include <stdlib.h>
@@ -112,6 +112,8 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 			csp_buffer_free(input.packet);
 			continue;
 		}
+#elif defined(_CSP_FREERTOS_)
+		vTaskDelay(10);
 #endif
 #endif
 
@@ -219,10 +221,10 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
  * Use this function to start the router task.
  * @param task_stack_size The number of portStackType to allocate. This only affects FreeRTOS systems.
  */
+csp_thread_handle_t handle_router;
 void csp_route_start_task(unsigned int task_stack_size) {
-    csp_thread_handle_t handle;
     
-    int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, 1, &handle);
+    int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, 1, &handle_router);
     
     if (ret != 0)
         printf("Failed to start router task\n");
@@ -288,6 +290,9 @@ csp_iface_t * csp_route_if(uint8_t id) {
 void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * pxTaskWoken) {
 
 	int result;
+
+	if (router_input_fifo == NULL)
+		return;
 
 	csp_route_queue_t queue_element;
 	queue_element.interface = interface;

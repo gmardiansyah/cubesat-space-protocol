@@ -43,12 +43,12 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 
 	switch(level) {
 	case CSP_INFO: 		if (!levels_enable[CSP_INFO]) return; 		color = ""; break;
-	case CSP_ERROR: 	if (!levels_enable[CSP_ERROR]) return; 		color = "\E[1;91m"; break;
-	case CSP_WARN: 		if (!levels_enable[CSP_WARN]) return; 		color = "\E[0;93m"; break;
+	case CSP_ERROR: 	if (!levels_enable[CSP_ERROR]) return; 		color = "\E[1;31m"; break;
+	case CSP_WARN: 		if (!levels_enable[CSP_WARN]) return; 		color = "\E[0;33m"; break;
 	case CSP_BUFFER: 	if (!levels_enable[CSP_BUFFER]) return; 	color = "\E[0;33m"; break;
 	case CSP_PACKET: 	if (!levels_enable[CSP_PACKET]) return; 	color = "\E[0;32m"; break;
-	case CSP_PROTOCOL:  if (!levels_enable[CSP_PROTOCOL]) return; 	color = "\E[0;94m"; break;
-	case CSP_LOCK:		if (!levels_enable[CSP_LOCK]) return; 		color = "\E[0;96m"; break;
+	case CSP_PROTOCOL:  if (!levels_enable[CSP_PROTOCOL]) return; 	color = "\E[0;34m"; break;
+	case CSP_LOCK:		if (!levels_enable[CSP_LOCK]) return; 		color = "\E[0;36m"; break;
 	}
 
 #if defined(_CSP_POSIX_)
@@ -65,6 +65,22 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 	} else if (pthread_self() == handle_rdptestserver) {
 		printf("\t\t\t\t\t\t\t\t");
 	} else if (pthread_self() == handle_router) {
+		printf("\t\t\t\t");
+	}
+#endif
+
+#if defined(_CSP_FREERTOS_)
+#include <freertos/task.h>
+#include "arch/csp_thread.h"
+
+	extern csp_thread_handle_t handle_router;
+	extern csp_thread_handle_t handle_server;
+	extern csp_thread_handle_t handle_console;
+
+	if (xTaskGetCurrentTaskHandle() == handle_server) {
+		printf("\t\t\t\t\t\t\t\t");
+	} else if (xTaskGetCurrentTaskHandle() == handle_console) {
+	} else if (xTaskGetCurrentTaskHandle() == handle_router) {
 		printf("\t\t\t\t");
 	}
 #endif

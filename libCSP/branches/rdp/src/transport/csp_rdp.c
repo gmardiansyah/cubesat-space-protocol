@@ -61,7 +61,7 @@ enum csp_rdp_states {
 	RDP_CLOSE_WAIT,
 };
 
-typedef struct rdp_header_s {
+typedef struct __attribute__((__packed__)) rdp_header_s {
 	uint8_t syn;
 	uint8_t ack;
 	uint8_t eak;
@@ -121,8 +121,8 @@ static int csp_rdp_send_cmp(csp_conn_t * conn, int ack, int syn, int rst, int se
 	packet->length = 0;
 	rdp_header_t * header = csp_rdp_header_add(packet);
 	memset(header, 0, sizeof(rdp_header_t));
-	header->seq_nr = seq_nr;
-	header->ack_nr = ack_nr;
+	header->seq_nr = htons(seq_nr);
+	header->ack_nr = htons(ack_nr);
 	header->ack = ack;
 	header->syn = syn;
 	header->rst = rst;
@@ -132,7 +132,7 @@ static int csp_rdp_send_cmp(csp_conn_t * conn, int ack, int syn, int rst, int se
 		return 0;
 	}
 
-	if (copy_yes_no) {
+	if (copy_yes_no == 1) {
 		/* Send copy to tx_queue */
 		rdp_packet_t * rdp_packet = csp_buffer_get(packet->length+10);
 		rdp_packet->timestamp = csp_get_ms();
@@ -169,8 +169,8 @@ static void csp_rdp_send_eack(csp_conn_t * conn) {
 
 	rdp_header_t * header = csp_rdp_header_add(packet);
 	memset(header, 0, sizeof(rdp_header_t));
-	header->seq_nr = conn->l4data->snd_nxt;
-	header->ack_nr = conn->l4data->rcv_cur;
+	header->seq_nr = htons(conn->l4data->snd_nxt);
+	header->ack_nr = htons(conn->l4data->rcv_cur);
 	header->ack = 1;
 	header->eak = 1;
 	if (csp_send_direct(conn->idout, packet, 0) == 0) {
@@ -275,7 +275,7 @@ static void csp_rdp_flush_all(csp_conn_t * conn) {
 			continue;
 
 		rdp_header_t * header = csp_rdp_header_ref((csp_packet_t *) packet);
-		csp_debug(CSP_PROTOCOL, "Clear TX Element, time %u, seq %u\r\n", packet->timestamp, header->seq_nr);
+		csp_debug(CSP_PROTOCOL, "Clear TX Element, time %u, seq %u\r\n", packet->timestamp, ntohs(header->seq_nr));
 		csp_buffer_free(packet);
 		continue;
 	}
@@ -336,6 +336,8 @@ void csp_rdp_flush_acked(csp_conn_t * conn) {
 
 	if ((conn == NULL) || conn->l4data == NULL || conn->l4data->tx_queue == NULL) {
 		csp_debug(CSP_ERROR, "Null pointer passed to rdp flush\r\n");
+		if (conn != NULL)
+			csp_debug(CSP_ERROR, "Connection %p in state %u with idout 0x%08X\r\n", conn, conn->state, conn->idout);
 		return;
 	}
 
@@ -369,14 +371,14 @@ void csp_rdp_flush_acked(csp_conn_t * conn) {
 			continue;
 
 		rdp_header_t * header = csp_rdp_header_ref((csp_packet_t *) packet);
-		if (header->seq_nr < conn->l4data->snd_una) {
-			csp_debug(CSP_PROTOCOL, "TX Element Free, time %u, seq %u\r\n", packet->timestamp, header->seq_nr);
+		if (ntohs(header->seq_nr) < conn->l4data->snd_una) {
+			csp_debug(CSP_PROTOCOL, "TX Element Free, time %u, seq %u\r\n", packet->timestamp, ntohs(header->seq_nr));
 			csp_buffer_free(packet);
 			continue;
 		}
 
-		if (packet->timestamp + 40 < time_now) {
-			csp_debug(CSP_WARN, "TX Element timed out, retransmitting!\r\n");
+		if (packet->timestamp + 100 < time_now) {
+			csp_debug(CSP_WARN, "TX Element timed out, retransmitting seq %u\r\n", ntohs(header->seq_nr));
 
 			/* Send copy to tx_queue */
 			packet->timestamp = csp_get_ms();
@@ -400,8 +402,10 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet) {
 		return;
 	}
 
-	/* Get RX header */
+	/* Get RX header and convert to host byte-order */
 	rdp_header_t * rx_header = csp_rdp_header_remove(packet);
+	rx_header->ack_nr = ntohs(rx_header->ack_nr);
+	rx_header->seq_nr = ntohs(rx_header->seq_nr);
 
 	csp_debug(CSP_PROTOCOL, "RDP: HEADER NP: syn %u, ack %u, eack %u, rst %u, seq_nr %u, ack_nr %u, packet_len %u\r\n", rx_header->syn, rx_header->ack, rx_header->eak, rx_header->rst, rx_header->seq_nr, rx_header->ack_nr, packet->length);
 
@@ -758,8 +762,8 @@ int csp_rdp_send(csp_conn_t* conn, csp_packet_t * packet, unsigned int timeout) 
 
 	rdp_header_t * tx_header = csp_rdp_header_add(packet);
 	memset(tx_header, 0, sizeof(rdp_header_t));
-	tx_header->seq_nr = conn->l4data->snd_nxt;
-	tx_header->ack_nr = conn->l4data->rcv_cur;
+	tx_header->ack_nr = htons(conn->l4data->rcv_cur);
+	tx_header->seq_nr = htons(conn->l4data->snd_nxt);
 	tx_header->ack = 1;
 	conn->l4data->snd_nxt += 1;
 
