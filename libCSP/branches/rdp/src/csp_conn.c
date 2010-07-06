@@ -290,6 +290,8 @@ csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, ui
     case CSP_RDP:
     	result = csp_rdp_connect_active(conn, timeout);
     	break;
+    default:
+    	break;
     }
 #endif
 
