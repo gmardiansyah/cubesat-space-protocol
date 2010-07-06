@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 /* CSP includes */
 #include <csp/csp.h>
 
+#include "../csp_malloc.h"
 #include "../csp_semaphore.h"
 
 int csp_bin_sem_create(csp_bin_sem_handle_t * sem) {

@@ -39,7 +39,7 @@ static uint8_t levels_enable[7] = {
 
 void csp_debug(csp_debug_level_t level, const char * format, ...) {
 
-	const char * color;
+	const char * color = "";
 
 	switch(level) {
 	case CSP_INFO: 		if (!levels_enable[CSP_INFO]) return; 		color = ""; break;
