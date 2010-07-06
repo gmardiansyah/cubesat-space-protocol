@@ -48,7 +48,7 @@ void csp_conn_check_timeouts(void) {
 	for (i = 0; i < CONN_MAX; i++) {
 
 		/* Only look at open connetions */
-		if (arr_conn[i].state == CONN_CLOSED)
+		if (arr_conn[i].state != CONN_OPEN)
 			continue;
 
 		/* Check the protocol and higher layers */
@@ -182,12 +182,12 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
  */
 void csp_close_wait(csp_conn_t * conn) {
 
+	/* Set state */
+	conn->state = CONN_CLOSE_WAIT;
+
     /* Try to wake any tasks */
     void * null_pointer = NULL;
     csp_queue_enqueue(conn->rx_queue, &null_pointer, 0);
-
-    /* Set state */
-    conn->state = CONN_CLOSE_WAIT;
 
 }
 

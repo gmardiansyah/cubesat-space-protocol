@@ -30,9 +30,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 /** @brief Connection states */
 typedef enum {
-    CONN_CLOSED,					// Connection closed
-    CONN_OPEN,						// Connection open
-    CONN_CLOSE_WAIT,				// Conneciton closed by network stack, waiting for userspace to close too.
+    CONN_CLOSED = 0,				// Connection closed
+    CONN_OPEN = 1,					// Connection open
+    CONN_CLOSE_WAIT = 2,			// Conneciton closed by network stack, waiting for userspace to close too.
 } csp_conn_state_t;
 
 /** @brief Connection struct */
