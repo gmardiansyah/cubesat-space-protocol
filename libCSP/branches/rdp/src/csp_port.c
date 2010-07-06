@@ -67,6 +67,7 @@ int csp_bind(csp_socket_t * socket, uint8_t port) {
 	/* Check if port number is valid */
 	if (ports[port].state != PORT_CLOSED) {
 		csp_debug(CSP_ERROR, "Port %d is already in use\r\n", port);
+		CSP_EXIT_CRITICAL();
 		return -1;
 	}
 
@@ -95,6 +96,7 @@ int csp_bind_callback(void (*callback) (csp_conn_t*), uint8_t port) {
 	/* Check if port number is valid */
 	if (ports[port].state != PORT_CLOSED) {
 		csp_debug(CSP_ERROR, "Port %d is already in use\r\n", port);
+		CSP_EXIT_CRITICAL();
 		return -1;
 	}
 
