@@ -132,86 +132,83 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 
 			if (dst == NULL) {
 				csp_buffer_free(packet);
-				continue;
-			}
-
-			if (dst->nexthop == input.interface) {
+			} else if (dst->nexthop == input.interface) {
 				csp_buffer_free(packet);
-				continue;
-			}
+			} else {
+			    /* Actually send the message */
+			    if (!csp_send_direct(packet->id, packet, 0))
+				    csp_buffer_free(packet);
+		    }
 
-			/* Actually send the message */
-			if (!csp_send_direct(packet->id, packet, 0))
-				csp_buffer_free(packet);
-
-		}
-
-		/* Now, the message is to me:
-		 * search for an existing connection */
-		conn = csp_conn_find(packet->id.ext, CSP_ID_CONN_MASK);
-
-		/* If a conneciton was found */
-		if (conn != NULL) {
-
-			/* Check the close_wait state */
-			if (conn->state == CONN_CLOSE_WAIT) {
-				csp_debug(CSP_WARN, "Router discarded packet: CLOSE_WAIT\r\n");
-				csp_buffer_free(packet);
-				continue;
-			}
-
-		/* Okay, this is a new connection attempt,
-		 * check if a port is listening and open a conn.
-		 */
 		} else {
 
-			/* Try to deliver to incoming port number */
-			if (ports[packet->id.dport].state == PORT_OPEN) {
-				queue = ports[packet->id.dport].socket->conn_queue;
+		    /* Now, the message is to me:
+		     * search for an existing connection */
+		    conn = csp_conn_find(packet->id.ext, CSP_ID_CONN_MASK);
 
-			/* Otherwise, try local "catch all" port number */
-			} else if (ports[CSP_ANY].state == PORT_OPEN) {
-				queue = ports[CSP_ANY].socket->conn_queue;
+		    /* If a connection was found */
+		    if (conn != NULL) {
 
-			/* Or reject */
-			} else {
-				csp_buffer_free(packet);
-				continue;
-			}
+			    /* Check the close_wait state */
+			    if (conn->state == CONN_CLOSE_WAIT) {
+				    csp_debug(CSP_WARN, "Router discarded packet: CLOSE_WAIT\r\n");
+				    csp_buffer_free(packet);
+				    continue;
+			    }
 
-			/* New incoming connection accepted */
-			csp_id_t idout;
-			idout.pri = packet->id.pri;
-			idout.dst = packet->id.src;
-			idout.src = packet->id.dst;
-			idout.dport = packet->id.sport;
-			idout.sport = packet->id.dport;
-			idout.protocol = packet->id.protocol;
-			conn = csp_conn_new(packet->id, idout);
+		    /* Okay, this is a new connection attempt,
+		     * check if a port is listening and open a conn.
+		     */
+		    } else {
 
-			if (conn == NULL) {
-				csp_debug(CSP_ERROR, "No more connections available\r\n");
-				csp_buffer_free(packet);
-				continue;
-			}
+			    /* Try to deliver to incoming port number */
+			    if (ports[packet->id.dport].state == PORT_OPEN) {
+				    queue = ports[packet->id.dport].socket->conn_queue;
 
-			/* Store the queue to be posted to */
-			conn->rx_socket = queue;
+			    /* Otherwise, try local "catch all" port number */
+			    } else if (ports[CSP_ANY].state == PORT_OPEN) {
+				    queue = ports[CSP_ANY].socket->conn_queue;
 
-		}
+			    /* Or reject */
+			    } else {
+				    csp_buffer_free(packet);
+				    continue;
+			    }
 
-		/* Pass packet to the right transport module */
-		switch(packet->id.protocol) {
+			    /* New incoming connection accepted */
+			    csp_id_t idout;
+			    idout.pri = packet->id.pri;
+			    idout.dst = packet->id.src;
+			    idout.src = packet->id.dst;
+			    idout.dport = packet->id.sport;
+			    idout.sport = packet->id.dport;
+			    idout.protocol = packet->id.protocol;
+			    conn = csp_conn_new(packet->id, idout);
+
+			    if (conn == NULL) {
+				    csp_debug(CSP_ERROR, "No more connections available\r\n");
+				    csp_buffer_free(packet);
+				    continue;
+			    }
+
+			    /* Store the queue to be posted to */
+			    conn->rx_socket = queue;
+
+		    }
+
+		    /* Pass packet to the right transport module */
+		    switch(packet->id.protocol) {
 #if CSP_USE_RDP
-		case CSP_RDP:
-			csp_rdp_new_packet(conn, packet);
-			break;
+		    case CSP_RDP:
+			    csp_rdp_new_packet(conn, packet);
+			    break;
 #endif
-		case CSP_UDP:
-		default:
-			csp_udp_new_packet(conn, packet);
-			break;
-		}
+		    case CSP_UDP:
+		    default:
+			    csp_udp_new_packet(conn, packet);
+			    break;
+		    }
+	    }
 
 	}
 
