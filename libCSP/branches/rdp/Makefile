@@ -64,6 +64,9 @@ SOURCES += src/arch/$(ARCH)/csp_queue.c
 SOURCES += src/arch/$(ARCH)/csp_semaphore.c
 SOURCES += src/arch/$(ARCH)/csp_time.c
 SOURCES += src/arch/$(ARCH)/csp_thread.c
+SOURCES += src/transport/csp_rdp.c
+SOURCES += src/transport/csp_udp.c
+
 
 ## POSIX archs requires pthread_queue
 ifeq ($(ARCH),posix)
