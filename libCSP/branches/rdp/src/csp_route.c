@@ -129,21 +129,19 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 			/* Find the destination interface */
 			dst = csp_route_if(packet->id.dst);
 
-			/* If no route to host or error, drop */
 			if (dst == NULL) {
+                /* If no route to host or error, drop */
 				csp_buffer_free(packet);
-				continue;
-			}
-
-			/* If the message resolves to the input interface, don't loop ip back out */
-			if (dst->nexthop == input.interface) {
+			} else if (dst->nexthop == input.interface) {
+                /* If the message resolves to the input interface, don't loop ip back out */
 				csp_buffer_free(packet);
-				continue;
-			}
-
-			/* Otherwise, actually send the message */
-			if (!csp_send_direct(packet->id, packet, 0))
-				csp_buffer_free(packet);
+			} else {
+			    /* Otherwise, actually send the message */
+			    if (!csp_send_direct(packet->id, packet, 0))
+				    csp_buffer_free(packet);
+            }
+            
+            /* Next message, please */
 			continue;
 
 		}
