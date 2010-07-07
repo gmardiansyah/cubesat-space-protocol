@@ -27,6 +27,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <csp/csp.h>
 #include <csp/csp_config.h>
 
+#if defined(_CSP_POSIX_)
+#include <pthread.h>
+#endif
+
 static uint8_t levels_enable[7] = {
 		1,	// Info
 		1,	// Error
@@ -52,12 +56,11 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 	}
 
 #if defined(_CSP_POSIX_)
-#include <pthread.h>
 
-	extern pthread_t handle_server;
-	extern pthread_t handle_console;
-	extern pthread_t handle_rdptestserver;
-	extern pthread_t handle_router;
+	extern __attribute__((weak)) pthread_t handle_server;
+	extern __attribute__((weak)) pthread_t handle_console;
+	extern __attribute__((weak)) pthread_t handle_rdptestserver;
+	extern __attribute__((weak)) pthread_t handle_router;
 
 	if (pthread_self() == handle_server) {
 		printf("\t\t\t\t\t\t\t\t");
@@ -65,7 +68,11 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 	} else if (pthread_self() == handle_rdptestserver) {
 		printf("\t\t\t\t\t\t\t\t");
 	} else if (pthread_self() == handle_router) {
+#if defined(__i386__)
+		printf("\t\t");
+#else
 		printf("\t\t\t\t");
+#endif
 	}
 #endif
 
