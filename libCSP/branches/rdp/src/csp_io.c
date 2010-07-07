@@ -202,7 +202,7 @@ int csp_transaction_persistent(csp_conn_t * conn, unsigned int timeout, void * o
 		memcpy(packet->data, outbuf, outlen);
 	packet->length = outlen;
 
-	if (!csp_send(conn, packet, 0)) {
+	if (!csp_send(conn, packet, timeout)) {
 		printf("Send failed\r\n");
 		return 0;
 	}
