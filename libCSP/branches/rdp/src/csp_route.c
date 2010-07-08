@@ -40,7 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "transport/csp_transport.h"
 
 /* Static allocation of interfaces */
-csp_iface_t iface[17];
+static csp_iface_t iface[17];
 
 /** Routing input Queue
  * This queue is used each time a packet is received from an IF.
@@ -123,24 +123,29 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 				packet->id.pri, packet->id.src, packet->id.dst, packet->id.dport,
 				packet->id.sport, packet->id.type);
 
+		/* Here there be promiscous mode */
+#if CSP_USE_PROMISC
+
+
+#endif
+
+
 		/* If the message is not to me, route the message to the correct iface */
-		if (packet->id.dst != my_address) {
+		if ((packet->id.dst != my_address) && (packet->id.dst != CSP_BROADCAST_ADDR)) {
 
 			/* Find the destination interface */
 			dst = csp_route_if(packet->id.dst);
 
-			if (dst == NULL) {
-                /* If no route to host or error, drop */
+			/* If the message resolves to the input interface, don't loop ip back out */
+			if ((dst == NULL) || (dst->nexthop == input.interface)) {
 				csp_buffer_free(packet);
-			} else if (dst->nexthop == input.interface) {
-                /* If the message resolves to the input interface, don't loop ip back out */
-				csp_buffer_free(packet);
-			} else {
-			    /* Otherwise, actually send the message */
-			    if (!csp_send_direct(packet->id, packet, 0))
-				    csp_buffer_free(packet);
-            }
-            
+				continue;
+			}
+
+			/* Otherwise, actually send the message */
+			if (!csp_send_direct(packet->id, packet, 0))
+			   csp_buffer_free(packet);
+
             /* Next message, please */
 			continue;
 
@@ -183,10 +188,17 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 			csp_id_t idout;
 			idout.pri = packet->id.pri;
 			idout.dst = packet->id.src;
-			idout.src = packet->id.dst;
 			idout.dport = packet->id.sport;
 			idout.sport = packet->id.dport;
 			idout.protocol = packet->id.protocol;
+
+			/* Ensure a broadcast packet is replied from correct source address */
+			if (packet->id.dst == CSP_BROADCAST_ADDR) {
+				idout.src = my_address;
+			} else {
+				idout.src = packet->id.dst;
+			}
+
 			conn = csp_conn_new(packet->id, idout);
 
 			if (conn == NULL) {
@@ -228,7 +240,7 @@ void csp_route_start_task(unsigned int task_stack_size) {
     int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, 1, &handle_router);
     
     if (ret != 0)
-        printf("Failed to start router task\n");
+        csp_debug(CSP_ERROR, "Failed to start router task\n");
 
 }
 
@@ -244,7 +256,7 @@ void csp_route_set(const char * name, uint8_t node, nexthop_t nexthop) {
 		iface[node].nexthop = nexthop;
 		iface[node].name = name;
 	} else {
-		printf("ERROR: Failed to set route: invalid nodeid %u\r\n", node);
+		csp_debug(CSP_ERROR, "Failed to set route: invalid nodeid %u\r\n", node);
 	}
 
 }

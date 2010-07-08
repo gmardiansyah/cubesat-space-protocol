@@ -67,8 +67,11 @@ typedef enum csp_protocol_e {
 	CSP_CTP = 2
 } csp_protocol_t;
 
-/** @brief The address of the node */
+/** The address of the node */
 extern uint8_t my_address;
+
+/** Broadcast address */
+#define CSP_BROADCAST_ADDR	15
 
 /** Identifier field masks */
 #define CSP_ID_PRIO_MASK    ((uint32_t)0x07 << 26)
@@ -238,8 +241,13 @@ typedef enum csp_debug_level_e {
 	CSP_LOCK = 6,
 } csp_debug_level_t;
 
+#if CSP_DEBUG
 void csp_debug(csp_debug_level_t level, const char * format, ...);
 void csp_debug_toggle_level(csp_debug_level_t level);
+#else
+#define csp_debug(...)
+#define csp_debug_toggle_level(...)
+#endif
 
 
 

@@ -37,10 +37,5 @@ void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet) {
 		conn->rx_socket = NULL;
 	}
 
-	/* If a local callback is used, call it */
-	if ((packet->id.dst == my_address) && (packet->id.dport < 16)
-			&& (ports[packet->id.dport].callback != NULL))
-		ports[packet->id.dport].callback(conn);
-
 }
 

@@ -80,7 +80,7 @@ void * csp_buffer_get(size_t buf_size) {
     static uint8_t csp_buffer_last_given = 0;
 
 	if (buf_size + CSP_BUFFER_PACKET_OVERHEAD > size) {
-		printf("Attempt to allocate too large block\r\n");
+		csp_debug(CSP_ERROR, "Attempt to allocate too large block\r\n");
 		return NULL;
 	}
 
@@ -131,6 +131,7 @@ int csp_buffer_remaining(void) {
 	return buf_count;
 }
 
+#if CSP_DEBUG
 void csp_buffer_print_table(void) {
 	int i;
 	csp_packet_t * packet;
@@ -149,3 +150,4 @@ void csp_buffer_print_table(void) {
 
 	}
 }
+#endif

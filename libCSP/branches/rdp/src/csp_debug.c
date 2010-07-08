@@ -31,6 +31,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <pthread.h>
 #endif
 
+#if CSP_DEBUG
+
 static uint8_t levels_enable[7] = {
 		1,	// Info
 		1,	// Error
@@ -113,3 +115,4 @@ void csp_debug_toggle_level(csp_debug_level_t level) {
 	levels_enable[level] = (levels_enable[level]) ? 0 : 1;
 	printf("Level %u: value %u\r\n", level, levels_enable[level]);
 }
+#endif

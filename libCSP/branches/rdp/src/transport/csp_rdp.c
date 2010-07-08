@@ -278,8 +278,7 @@ static void csp_rdp_flush_all(csp_conn_t * conn) {
 		if (packet == NULL)
 			continue;
 
-		rdp_header_t * header = csp_rdp_header_ref((csp_packet_t *) packet);
-		csp_debug(CSP_PROTOCOL, "Clear TX Element, time %u, seq %u\r\n", packet->timestamp, ntohs(header->seq_nr));
+		csp_debug(CSP_PROTOCOL, "Clear TX Element, time %u, seq %u\r\n", packet->timestamp, ntohs(csp_rdp_header_ref((csp_packet_t *) packet)->seq_nr));
 		csp_buffer_free(packet);
 		continue;
 	}
