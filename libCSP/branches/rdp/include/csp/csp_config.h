@@ -53,6 +53,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 /* Transport layer config */
 #define CSP_USE_RDP			1
 
+/* Router config */
+#define CSP_USE_PROMISC		1
+
 /* Buffer config */
 #define CSP_BUFFER_CALLOC	0		// Set to 1 to clear buffer at allocation
 #define CSP_BUFFER_STATIC   0

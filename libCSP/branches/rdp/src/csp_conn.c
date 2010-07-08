@@ -37,6 +37,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 /* Static connection pool and lock */
 static csp_conn_t arr_conn[CONN_MAX];
 
+static csp_bin_sem_handle_t conn_lock;
+
 /** csp_conn_timeout
  * Walk trough open connections and check if anything needs to be
  * kicked, closed or retransmitted.
@@ -75,6 +77,9 @@ void csp_conn_init(void) {
 		arr_conn[i].state = CONN_CLOSED;
 		arr_conn[i].l4data = NULL;
 	}
+
+	if (csp_bin_sem_create(&conn_lock) != CSP_SEMAPHORE_OK)
+		csp_debug(CSP_ERROR, "No more memory for conn semaphore\r\n");
 
 }
 
@@ -117,16 +122,21 @@ csp_conn_t * csp_conn_new(csp_id_t idin, csp_id_t idout) {
 	i = csp_conn_last_given;								// Start with the last given element
 	i = (i + 1) % CONN_MAX;									// Increment by one
 
-	CSP_ENTER_CRITICAL();
-	while(i != csp_conn_last_given) {						// Loop till we have checked all
+	if (csp_bin_sem_wait(&conn_lock, 100) != CSP_SEMAPHORE_OK) {
+		csp_debug(CSP_ERROR, "Failed to lock conn array\r\n");
+		return NULL;
+	}
+
+	do {
 		conn = &arr_conn[i];
 		if (conn->state == CONN_CLOSED) {
 			conn->state = CONN_OPEN;
             break;
         }
-		i = (i + 1) % CONN_MAX;								// Increment by one
-	}
-	CSP_EXIT_CRITICAL();
+		i = (i + 1) % CONN_MAX;
+	} while(i != csp_conn_last_given);
+
+	csp_bin_sem_post(&conn_lock);
 
 	if (i == csp_conn_last_given) {
 		csp_debug(CSP_ERROR, "No more free connections\r\n");
@@ -308,6 +318,7 @@ csp_conn_t * csp_connect(csp_protocol_t protocol, uint8_t prio, uint8_t dest, ui
 
 }
 
+#if CSP_DEBUG
 /**
  * Small helper function to display the connection table
  */
@@ -330,6 +341,7 @@ void csp_conn_print_table(void) {
 
     }
 }
+#endif
 
 /**
  * @param conn pointer to connection structure
