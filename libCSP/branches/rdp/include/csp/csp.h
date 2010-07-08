@@ -89,6 +89,9 @@ extern uint8_t my_address;
 /** Broadcast address */
 #define CSP_BROADCAST_ADDR	15
 
+/** Default routing address */
+#define CSP_DEFAULT_ROUTE   16
+
 /** Identifier field masks */
 #define CSP_ID_PRIO_MASK    ((uint32_t)0x07 << 26)
 #define CSP_ID_SRC_MASK     ((uint32_t)0x0F << 22)
