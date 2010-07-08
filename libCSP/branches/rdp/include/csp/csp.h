@@ -213,6 +213,7 @@ int csp_buffer_init(int count, int size);
  * @return NULL if size is larger than buffer-block-sizse, pointer otherwise.
  */
 void * csp_buffer_get(size_t size);
+void * csp_buffer_get_isr(size_t buf_size);
 
 /**
  * Free a buffer after use. This call is both interrupt and thread safe.

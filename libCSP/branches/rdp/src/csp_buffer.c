@@ -70,6 +70,38 @@ int csp_buffer_init(int buf_count, int buf_size) {
 }
 
 /**
+ * Unprotoced version of buffer get
+ * @param buf_size
+ */
+void * csp_buffer_get_isr(size_t buf_size) {
+
+	static uint8_t csp_buffer_last_given = 0;
+
+	if (buf_size + CSP_BUFFER_PACKET_OVERHEAD > size) {
+		csp_debug(CSP_ERROR, "Attempt to allocate too large block\r\n");
+		return NULL;
+	}
+
+	int i = csp_buffer_last_given; // Start with the last given element
+	i = (i + 1) % count; // Increment by one
+	while (i != csp_buffer_last_given) { // Loop till we have checked all
+		if (csp_buffer_list[i] == CSP_BUFFER_FREE) { // Check the buffer list
+			csp_buffer_list[i] = CSP_BUFFER_USED; // Mark as used
+			csp_buffer_last_given = i; // Remember the progress
+#if CSP_BUFFER_CALLOC
+			memset(csp_buffer_p + (i * size), 0x00, size);
+#endif
+			csp_debug(CSP_BUFFER, "BUFFER: Using element %u at %p\r\n", i, csp_buffer_p + (i * size));
+			return csp_buffer_p + (i * size); // Return poniter
+		}
+		i = (i + 1) % count; // Increment by one
+	}
+
+	return NULL; // If we are out of memory, return NULL
+
+}
+
+/**
  * Searched a statically assigned array for a free entry
  * Starts with the last given element + 1 for optimisation
  * This call is safe from both ISR and task context
@@ -77,32 +109,10 @@ int csp_buffer_init(int buf_count, int buf_size) {
  */
 void * csp_buffer_get(size_t buf_size) {
 
-    static uint8_t csp_buffer_last_given = 0;
-
-	if (buf_size + CSP_BUFFER_PACKET_OVERHEAD > size) {
-		csp_debug(CSP_ERROR, "Attempt to allocate too large block\r\n");
-		return NULL;
-	}
-
-    CSP_ENTER_CRITICAL();
-	int i = csp_buffer_last_given;							// Start with the last given element
-	i = (i + 1) % count;									// Increment by one
-	while(i != csp_buffer_last_given) {						// Loop till we have checked all
-		if (csp_buffer_list[i] == CSP_BUFFER_FREE) {		// Check the buffer list
-			csp_buffer_list[i] = CSP_BUFFER_USED;			// Mark as used
-			csp_buffer_last_given = i;						// Remember the progress
-			CSP_EXIT_CRITICAL();
-#if CSP_BUFFER_CALLOC
-			memset(csp_buffer_p + (i * size), 0x00, size);
-#endif
-			csp_debug(CSP_BUFFER, "BUFFER: Using element %u at %p\r\n", i, csp_buffer_p + (i * size));
-			return csp_buffer_p + (i * size);				// Return poniter
-		}
-		i = (i + 1) % count;								// Increment by one
-	}
+	CSP_ENTER_CRITICAL();
+	csp_buffer_get_isr(buf_size);
 	CSP_EXIT_CRITICAL();
 
-	return NULL;											// If we are out of memory, return NULL
 }
 
 /**
