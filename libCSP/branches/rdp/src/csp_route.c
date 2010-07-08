@@ -40,7 +40,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "transport/csp_transport.h"
 
 /* Static allocation of interfaces */
-static csp_iface_t iface[17];
+csp_iface_t iface[17];
+
+#if CSP_USE_PROMISC
+csp_queue_handle_t csp_promisc_queue = NULL;
+#endif
 
 /** Routing input Queue
  * This queue is used each time a packet is received from an IF.
@@ -125,10 +129,20 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 
 		/* Here there be promiscous mode */
 #if CSP_USE_PROMISC
+		if (csp_promisc_queue != NULL) {
 
+			/* Make a copy of the message and queue it to the promisc task */
+			csp_packet_t * packet_copy = csp_buffer_get(packet->length);
+			if (packet_copy != NULL) {
+				memcpy(&packet_copy->length, &packet->length, packet->length + 6);
+				if (csp_queue_enqueue(csp_promisc_queue, &packet_copy, 0) != CSP_QUEUE_OK) {
+					csp_debug(CSP_ERROR, "Promisc. mode input queue full\r\n");
+					csp_buffer_free(packet_copy);
+				}
+			}
 
+		}
 #endif
-
 
 		/* If the message is not to me, route the message to the correct iface */
 		if ((packet->id.dst != my_address) && (packet->id.dst != CSP_BROADCAST_ADDR)) {
@@ -323,3 +337,10 @@ void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * 
 	}
 
 }
+
+#if CSP_USE_PROMISC
+csp_queue_handle_t csp_get_promisc_queue(unsigned int buf_size) {
+	csp_promisc_queue = csp_queue_create(buf_size, sizeof(csp_packet_t *));
+	return csp_promisc_queue;
+}
+#endif

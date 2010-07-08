@@ -39,7 +39,8 @@ enum csp_reserved_ports_e {
 	CSP_MEMFREE         = 3,
 	CSP_REBOOT          = 4,
 	CSP_BUF_FREE        = 5,
-	CSP_ANY             = 16
+	CSP_ANY             = 16,
+	CSP_PROMISC			= 17
 };
 
 /**

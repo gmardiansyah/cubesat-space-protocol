@@ -108,11 +108,11 @@ void * csp_buffer_get_isr(size_t buf_size) {
  * @return poiter to a free csp_packet_t or NULL if out of memory
  */
 void * csp_buffer_get(size_t buf_size) {
-
+	void * buffer;
 	CSP_ENTER_CRITICAL();
-	csp_buffer_get_isr(buf_size);
+	buffer = csp_buffer_get_isr(buf_size);
 	CSP_EXIT_CRITICAL();
-
+	return buffer;
 }
 
 /**
