@@ -51,7 +51,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define CSP_FIFO_INPUT		100		// Number of packets to be queued at the input of the router
 
 /* Transport layer config */
-#define CSP_USE_RDP			0
+#define CSP_USE_RDP			1
 
 /* Router config */
 #define CSP_USE_PROMISC		1
