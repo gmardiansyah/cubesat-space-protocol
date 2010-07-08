@@ -40,7 +40,7 @@ enum csp_reserved_ports_e {
 	CSP_REBOOT          = 4,
 	CSP_BUF_FREE        = 5,
 	CSP_ANY             = 16,
-	CSP_PROMISC			= 17
+	CSP_PROMISC         = 17
 };
 
 /**
@@ -67,6 +67,21 @@ typedef enum csp_protocol_e {
 	CSP_RDP = 1,
 	CSP_CTP = 2
 } csp_protocol_t;
+
+/**
+ * CSP FRAME TYPES
+ */
+
+enum csp_frame_e {
+    CSP_RESERVED1 = 0,
+    CSP_RESERVED2 = 1,
+    CSP_BEGIN     = 2,
+    CSP_ACK       = 3,
+    CSP_PERROR    = 4,
+    CSP_MORE      = 5,
+    CSP_RESERVED3 = 6,
+    CSP_RESERVED4 = 7
+};
 
 /** The address of the node */
 extern uint8_t my_address;
@@ -234,13 +249,13 @@ void csp_buffer_print_table(void);
 
 /* CSP debug printf - implemented in arch/x/csp_debug.c */
 typedef enum csp_debug_level_e {
-	CSP_INFO = 0,
-	CSP_ERROR = 1,
-	CSP_WARN = 2,
-	CSP_BUFFER = 3,
-	CSP_PACKET = 4,
+	CSP_INFO     = 0,
+	CSP_ERROR    = 1,
+	CSP_WARN     = 2,
+	CSP_BUFFER   = 3,
+	CSP_PACKET   = 4,
 	CSP_PROTOCOL = 5,
-	CSP_LOCK = 6,
+	CSP_LOCK     = 6,
 } csp_debug_level_t;
 
 #if CSP_DEBUG
