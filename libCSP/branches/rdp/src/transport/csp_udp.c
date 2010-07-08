@@ -28,8 +28,7 @@ void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet) {
 	if (conn->rx_socket != NULL) {
 		if (csp_queue_enqueue(conn->rx_socket, &conn, 0) == CSP_QUEUE_FULL) {
 			printf("Warning Routing Queue Full\r\n");
-			/* Don't call csp_conn_close, since this might be ISR context. */
-			conn->state = CONN_CLOSED;
+			csp_close(conn);
 			return;
 		}
 
