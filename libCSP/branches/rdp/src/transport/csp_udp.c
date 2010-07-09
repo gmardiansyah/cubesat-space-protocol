@@ -26,7 +26,7 @@ void csp_udp_new_packet(csp_conn_t * conn, csp_packet_t * packet) {
 
 	/* Try to queue up the new connection pointer */
 	if (conn->rx_socket != NULL) {
-		if (csp_queue_enqueue(conn->rx_socket, &conn, 0) == CSP_QUEUE_FULL) {
+		if (csp_queue_enqueue(conn->rx_socket, &conn, 0) != CSP_QUEUE_OK) {
 			printf("Warning Routing Queue Full\r\n");
 			csp_close(conn);
 			return;
