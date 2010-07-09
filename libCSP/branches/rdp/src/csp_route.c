@@ -183,7 +183,13 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 		 * check if a port is listening and open a conn.
 		 */
 		} else {
-
+            
+            /* Reject packet if dport is an ephememal port */
+            if (packet->id.dport > 16) {
+		        csp_buffer_free(packet); 
+		    	continue;
+	    	}
+    
 			/* Try to deliver to incoming port number */
 			if (ports[packet->id.dport].state == PORT_OPEN) {
 				queue = ports[packet->id.dport].socket->conn_queue;
@@ -317,8 +323,11 @@ void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * 
 
 	int result;
 
-	if (router_input_fifo == NULL)
+	if (router_input_fifo == NULL) {
+	    csp_debug(CSP_WARN, "WARNING: csp_new_packet called with NULL router_input_fifo\r\n");
+	    csp_buffer_free(packet);
 		return;
+	}
 
 	csp_route_queue_t queue_element;
 	queue_element.interface = interface;
