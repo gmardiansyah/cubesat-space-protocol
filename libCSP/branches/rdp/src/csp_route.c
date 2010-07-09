@@ -248,10 +248,9 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
  * Use this function to start the router task.
  * @param task_stack_size The number of portStackType to allocate. This only affects FreeRTOS systems.
  */
-csp_thread_handle_t handle_router;
-void csp_route_start_task(unsigned int task_stack_size) {
+void csp_route_start_task(unsigned int task_stack_size, unsigned int priority) {
     
-    int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, 1, &handle_router);
+    int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, priority, NULL);
     
     if (ret != 0)
         csp_debug(CSP_ERROR, "Failed to start router task\n");
