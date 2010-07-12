@@ -46,6 +46,8 @@ csp_iface_t iface[17];
 csp_queue_handle_t csp_promisc_queue = NULL;
 #endif
 
+csp_thread_handle_t router_handle;
+
 /** Routing input Queue
  * This queue is used each time a packet is received from an IF.
  * It holds the csp_route_queue_t complex datatype
@@ -256,7 +258,7 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
  */
 void csp_route_start_task(unsigned int task_stack_size, unsigned int priority) {
     
-    int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, priority, NULL);
+    int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, priority, &router_handle);
     
     if (ret != 0)
         csp_debug(CSP_ERROR, "Failed to start router task\n");
