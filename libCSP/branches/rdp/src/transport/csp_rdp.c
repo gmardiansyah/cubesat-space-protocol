@@ -39,7 +39,7 @@ struct csp_l4data_s {
 	int rcv_irs;
 	int sbuf_max;
 	int rbuf_max;
-	uint16_t rcvdseqno[RDP_WINDOW_MAX];
+	uint16_t rcvdseqno[RDP_WINDOW_MAX * 2];
 	csp_bin_sem_handle_t tx_wait;
 	csp_queue_handle_t tx_queue;
 };
@@ -162,7 +162,7 @@ static void csp_rdp_send_eack(csp_conn_t * conn) {
 	packet->length = 0;
 
 	int i;
-	for (i = 0; i < RDP_WINDOW_MAX; i++) {
+	for (i = 0; i < RDP_WINDOW_MAX * 2; i++) {
 		if (conn->l4data->rcvdseqno[i] == 0)
 			continue;
 
@@ -192,7 +192,7 @@ static void inline csp_rdp_wake_tx_task(csp_conn_t * conn) {
 static void inline csp_rdp_rcvseqnr_del(csp_conn_t * conn, uint16_t seq_nr) {
 
 	int i;
-	for (i = 0; i < RDP_WINDOW_MAX; i++) {
+	for (i = 0; i < RDP_WINDOW_MAX * 2; i++) {
 		if (conn->l4data->rcvdseqno[i] == seq_nr)
 			conn->l4data->rcvdseqno[i] = 0;
 	}
@@ -204,8 +204,10 @@ static void inline csp_rdp_rcvseqnr_add(csp_conn_t * conn, uint16_t seq_nr) {
 	/* Ensure it is not inserted twice */
 	csp_rdp_rcvseqnr_del(conn, seq_nr);
 
+	printf("Adding RCVSEQNR %u\r\n", seq_nr);
+
 	int i;
-	for (i = 0; i < RDP_WINDOW_MAX; i++) {
+	for (i = 0; i < RDP_WINDOW_MAX * 2; i++) {
 		if (conn->l4data->rcvdseqno[i] == 0) {
 			conn->l4data->rcvdseqno[i] = seq_nr;
 			break;
@@ -217,7 +219,7 @@ static void inline csp_rdp_rcvseqnr_flush(csp_conn_t * conn) {
 
 	int i;
 	hell:
-	for (i = 0; i < RDP_WINDOW_MAX; i++) {
+	for (i = 0; i < RDP_WINDOW_MAX * 2; i++) {
 		if (conn->l4data->rcvdseqno[i] == conn->l4data->rcv_cur + 1) {
 			conn->l4data->rcvdseqno[i] = 0;
 			conn->l4data->rcv_cur += 1;
@@ -292,8 +294,8 @@ static void csp_rdp_flush_eack(csp_conn_t * conn, csp_packet_t * eack_packet) {
 		return;
 	}
 
-	uint32_t * eack = (uint32_t *) eack_packet->data;
-	unsigned int eacks = eack_packet->length / sizeof(uint32_t);
+	uint16_t * eack = (uint16_t *) eack_packet->data;
+	unsigned int eacks = eack_packet->length / sizeof(uint16_t);
 
 	/* Loop through TX queue */
 	int i, j;
@@ -315,8 +317,8 @@ static void csp_rdp_flush_eack(csp_conn_t * conn, csp_packet_t * eack_packet) {
 		/* Look for this element in eacks */
 		int match = 0;
 		for (j = 0; j < eacks; j++) {
-			csp_debug(CSP_PROTOCOL, "EACK on %u\r\n", ntohl(eack[j]));
-			if (ntohl(eack[j]) == ntohs(header->seq_nr))
+			csp_debug(CSP_PROTOCOL, "EACK on %u\r\n", ntohs(eack[j]));
+			if (ntohs(eack[j]) == ntohs(header->seq_nr))
 				match = 1;
 		}
 
@@ -326,7 +328,7 @@ static void csp_rdp_flush_eack(csp_conn_t * conn, csp_packet_t * eack_packet) {
 			continue;
 		}
 
-		csp_debug(CSP_PROTOCOL, "TX Element %u freed\r\n", header->seq_nr);
+		csp_debug(CSP_PROTOCOL, "TX Element %u freed\r\n", ntohs(header->seq_nr));
 
 		/* Found, free */
 		csp_buffer_free(packet);
@@ -813,7 +815,7 @@ int csp_rdp_allocate(csp_conn_t * conn) {
 	}
 
 	/* Clear EACK seq numbers */
-	//memset(conn->l4data->rcvdseqno, 0, 4);
+	memset(conn->l4data->rcvdseqno, 0, RDP_WINDOW_MAX * 2 * sizeof(uint16_t));
 
 	return 1;
 
