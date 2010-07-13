@@ -39,6 +39,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "csp_io.h"
 #include "transport/csp_transport.h"
 
+#if defined(_CSP_POSIX_)
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#endif
+
 /* Static allocation of interfaces */
 csp_iface_t iface[17];
 
@@ -46,7 +53,7 @@ csp_iface_t iface[17];
 csp_queue_handle_t csp_promisc_queue = NULL;
 #endif
 
-csp_thread_handle_t router_handle;
+csp_thread_handle_t handle_router;
 
 /** Routing input Queue
  * This queue is used each time a packet is received from an IF.
@@ -103,17 +110,14 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 
 #if 0
 #if defined(_CSP_POSIX_)
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
+
 		/* random pause */
 		struct timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
 		srand(ts.tv_nsec);
 		usleep(rand() % 1000);
 
-		if (rand() % 1000 > 500) {
+		if (rand() % 1000 > 900) {
 			csp_debug(CSP_WARN, "Dropping packet, MUAHAHA\r\n");
 			csp_buffer_free(input.packet);
 			continue;
@@ -256,12 +260,13 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
  * Use this function to start the router task.
  * @param task_stack_size The number of portStackType to allocate. This only affects FreeRTOS systems.
  */
+
 void csp_route_start_task(unsigned int task_stack_size, unsigned int priority) {
-    
-    int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, priority, &router_handle);
-    
-    if (ret != 0)
-        csp_debug(CSP_ERROR, "Failed to start router task\n");
+
+	int ret = csp_thread_create(vTaskCSPRouter, (signed char *) "RTE", task_stack_size, NULL, priority, &handle_router);
+
+	if (ret != 0)
+		csp_debug(CSP_ERROR, "Failed to start router task\n");
 
 }
 
