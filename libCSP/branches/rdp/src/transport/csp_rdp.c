@@ -21,6 +21,7 @@
 #include "../arch/csp_time.h"
 #include "../csp_port.h"
 #include "../csp_conn.h"
+#include "../csp_io.h"
 #include "csp_transport.h"
 
 #if CSP_USE_RDP
