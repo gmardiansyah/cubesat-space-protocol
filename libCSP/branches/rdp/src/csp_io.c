@@ -102,7 +102,7 @@ csp_conn_t * csp_accept(csp_socket_t * sock, unsigned int timeout) {
  * The call will block.
  * Do NOT call this from ISR
  * @param conn pointer to connection
- * @param timeout timeout in ticks, use portMAX_DELAY for infinite blocking time
+ * @param timeout timeout in ms, use CSP_MAX_DELAY for infinite blocking time
  * @return Returns pointer to csp_packet_t, which you MUST free yourself, either by calling csp_buffer_free() or reusing the buffer for a new csp_send.
  */
 csp_packet_t * csp_read(csp_conn_t * conn, unsigned int timeout) {
