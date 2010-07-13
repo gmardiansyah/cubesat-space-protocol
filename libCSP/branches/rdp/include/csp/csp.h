@@ -157,7 +157,7 @@ typedef struct __attribute__((__packed__)) {
     uint8_t padding1[44];       // Interface dependent padding
     uint16_t length;            // Length field must be just before CSP ID
     csp_id_t id;                // CSP id must be just before data
-    uint8_t data[];				// This just points to the rest of the buffer, without a size indication.
+    uint8_t data[0];				// This just points to the rest of the buffer, without a size indication.
 } csp_packet_t;
 
 /**
@@ -201,6 +201,7 @@ typedef int (*nexthop_t)(csp_id_t idout, csp_packet_t * packet, unsigned int tim
 void csp_route_set(const char * name, uint8_t node, nexthop_t nexthop);
 void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * pxTaskWoken);
 void csp_route_start_task(unsigned int task_stack_size, unsigned int priority);
+csp_queue_handle_t csp_get_promisc_queue(unsigned int buf_size);
 
 /* Implemented in csp_services.c */
 void csp_service_handler(csp_conn_t * conn, csp_packet_t * packet);
