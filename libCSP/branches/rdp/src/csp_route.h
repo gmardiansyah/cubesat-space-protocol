@@ -36,8 +36,8 @@ typedef struct {
 void csp_route_table_init(void);
 csp_iface_t * csp_route_if(uint8_t id);
 csp_conn_t * csp_route(csp_id_t id, nexthop_t interface, CSP_BASE_TYPE * pxTaskWoken);
+void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * pxTaskWoken);
 
-/* @todo Add csp_start_router call */
 csp_thread_return_t vTaskCSPRouter(void * pvParameters);
 
 #endif // _CSP_ROUTE_H_

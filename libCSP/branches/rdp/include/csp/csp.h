@@ -177,7 +177,6 @@ csp_socket_t * csp_socket();
 csp_conn_t * csp_accept(csp_socket_t * socket, unsigned int timeout);
 csp_packet_t * csp_read(csp_conn_t * conn, unsigned int timeout);
 int csp_send(csp_conn_t * conn, csp_packet_t * packet, unsigned int timeout);
-int csp_send_direct(csp_id_t idout, csp_packet_t * packet, unsigned int timeout);
 int csp_transaction(uint8_t prio, uint8_t dest, uint8_t port, unsigned int timeout, void * outbuf, int outlen, void * inbuf, int inlen);
 int csp_transaction_persistent(csp_conn_t * conn, unsigned int timeout, void * outbuf, int outlen, void * inbuf, int inlen);
 
@@ -198,7 +197,6 @@ int csp_bind(csp_socket_t * socket, uint8_t port);
 /* Implemented in csp_route.c */
 typedef int (*nexthop_t)(csp_id_t idout, csp_packet_t * packet, unsigned int timeout);
 void csp_route_set(const char * name, uint8_t node, nexthop_t nexthop);
-void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * pxTaskWoken);
 void csp_route_start_task(unsigned int task_stack_size, unsigned int priority);
 int csp_promisc_enable(unsigned int buf_size);
 csp_packet_t * csp_promisc_read(unsigned int timeout);
