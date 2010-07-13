@@ -193,7 +193,6 @@ void csp_conn_print_table(void);
 
 /* Implemented in csp_port.c */
 int csp_listen(csp_socket_t * socket, size_t conn_queue_length);
-int csp_bind_callback(void (*callback) (csp_conn_t*), uint8_t port);
 int csp_bind(csp_socket_t * socket, uint8_t port);
 
 /* Implemented in csp_route.c */
