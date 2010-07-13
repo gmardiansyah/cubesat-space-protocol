@@ -349,8 +349,49 @@ void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * 
 }
 
 #if CSP_USE_PROMISC
-csp_queue_handle_t csp_get_promisc_queue(unsigned int buf_size) {
-	csp_promisc_queue = csp_queue_create(buf_size, sizeof(csp_packet_t *));
-	return csp_promisc_queue;
+/**
+ * Enable promiscuous mode packet queue
+ * This function is used to enable promiscuous mode for the router.
+ * If enabled, a copy of all incoming packets are placed in a queue
+ * that can be read with csp_promisc_get().
+ *
+ * Not all interface drivers support promiscuous mode. 
+ *
+ * @param buf_size Size of buffer for incoming packets
+ *
+ */
+int csp_promisc_enable(unsigned int buf_size) {
+    if (csp_promisc_queue != NULL)
+        return 0;
+    
+    /* Create packet queue */
+    csp_promisc_queue = csp_queue_create(buf_size, sizeof(csp_packet_t *));
+    
+    if (csp_promisc_queue != NULL) {
+	return 1;
+    } else {
+	return 0;
+    }
+}
+
+/**
+ * Get packet from promiscuous mode packet queue
+ * Returns the first packet from the promiscuous mode packet queue.
+ * The queue is FIFO, so the returned packet is the oldest one
+ * in the queue. 
+ *
+ * @param timeout Timeout in ms to wait for a new packet
+ *
+ */
+csp_packet_t * csp_promisc_read(unsigned int timeout) {
+
+    if (csp_promisc_queue == NULL)
+	return NULL;
+
+    csp_packet_t * packet = NULL;
+    csp_queue_dequeue(csp_promisc_queue, &packet, timeout);
+
+    return packet;
+
 }
 #endif
