@@ -34,12 +34,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #if CSP_DEBUG
 
 static uint8_t levels_enable[7] = {
-		1,	// Info
+		0,	// Info
 		1,	// Error
 		1,	// Warn
 		0,	// Buffer
-		1,	// Packet
-		1,	// Protocol
+		0,	// Packet
+		0,	// Protocol
 		0	// Locks
 };
 
