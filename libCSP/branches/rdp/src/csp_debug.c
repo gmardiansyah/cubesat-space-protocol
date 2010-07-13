@@ -56,7 +56,6 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 	case CSP_PROTOCOL:  if (!levels_enable[CSP_PROTOCOL]) return; 	color = "\E[0;34m"; break;
 	case CSP_LOCK:		if (!levels_enable[CSP_LOCK]) return; 		color = "\E[0;36m"; break;
 	}
-#if 0
 #if defined(_CSP_POSIX_)
 
 	extern __attribute__((weak)) pthread_t handle_server;
@@ -92,7 +91,6 @@ void csp_debug(csp_debug_level_t level, const char * format, ...) {
 	} else if (xTaskGetCurrentTaskHandle() == handle_router) {
 		printf("\t\t\t\t");
 	}
-#endif
 #endif
 
 	printf("%s", color);
