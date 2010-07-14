@@ -353,6 +353,20 @@ void csp_new_packet(csp_packet_t * packet, nexthop_t interface, CSP_BASE_TYPE * 
 
 }
 
+#if CSP_DEBUG
+void csp_route_print_table(void) {
+
+	int i;
+	for (i = 0; i < 16; i++)
+		if (iface[i].nexthop != NULL)
+			printf("\tNode: %u\t\tNexthop: %s\t\tCount: %u\r\n", i,
+					iface[i].name, iface[i].count);
+	printf("\tDefault\t\tNexthop: %s\t\tCount: %u\r\n", iface[16].name,
+			iface[16].count);
+
+}
+#endif
+
 #if CSP_USE_PROMISC
 /**
  * Enable promiscuous mode packet queue
