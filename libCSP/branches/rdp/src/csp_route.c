@@ -135,19 +135,7 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters) {
 
 		/* Here there be promiscous mode */
 #if CSP_USE_PROMISC
-		if (csp_promisc_queue != NULL) {
-
-			/* Make a copy of the message and queue it to the promisc task */
-			csp_packet_t * packet_copy = csp_buffer_get(packet->length);
-			if (packet_copy != NULL) {
-				memcpy(&packet_copy->length, &packet->length, packet->length + 6);
-				if (csp_queue_enqueue(csp_promisc_queue, &packet_copy, 0) != CSP_QUEUE_OK) {
-					csp_debug(CSP_ERROR, "Promisc. mode input queue full\r\n");
-					csp_buffer_free(packet_copy);
-				}
-			}
-
-		}
+		csp_promisc_add(packet, csp_promisc_queue);
 #endif
 
 		/* If the message is not to me, route the message to the correct iface */
@@ -411,6 +399,31 @@ csp_packet_t * csp_promisc_read(unsigned int timeout) {
     csp_queue_dequeue(csp_promisc_queue, &packet, timeout);
 
     return packet;
+
+}
+
+/**
+ * Add packet to promiscuous mode packet queue 
+ *
+ * @param packet Packet to add to the queue
+ * @param queue Promiscuous mode packet queue
+ *
+ */
+void csp_promisc_add(csp_packet_t * packet, csp_queue_handle_t queue) {
+
+	if (queue != NULL) {
+
+		/* Make a copy of the message and queue it to the promisc task */
+		csp_packet_t * packet_copy = csp_buffer_get(packet->length);
+		if (packet_copy != NULL) {
+			memcpy(&packet_copy->length, &packet->length, packet->length + 6);
+			if (csp_queue_enqueue(queue, &packet_copy, 0) != CSP_QUEUE_OK) {
+				csp_debug(CSP_ERROR, "Promisc. mode input queue full\r\n");
+				csp_buffer_free(packet_copy);
+			}
+		}
+
+	}
 
 }
 #endif

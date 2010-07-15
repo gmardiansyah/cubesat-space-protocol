@@ -42,6 +42,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 /** Static local variables */
 unsigned char my_address;
 
+#if CSP_USE_PROMISC
+extern csp_queue_handle_t csp_promisc_queue;
+#endif
+
 /** csp_init
  * Start up the can-space protocol
  * @param address The CSP node address
@@ -140,6 +144,14 @@ int csp_send_direct(csp_id_t idout, csp_packet_t * packet, unsigned int timeout)
 	}
 
 	csp_debug(CSP_PACKET, "Sending packet from %u to %u port %u via interface %s\r\n", idout.src, idout.dst, idout.dport, ifout->name);
+	
+#if CSP_USE_PROMISC
+    /* Loopback traffic is added to promisc queue by the router */
+    if (idout.dst != my_address) {
+        packet->id.ext = idout.ext;
+        csp_promisc_add(packet, csp_promisc_queue);
+    }
+#endif
 
 	return (*ifout->nexthop)(idout, packet, timeout);
 
