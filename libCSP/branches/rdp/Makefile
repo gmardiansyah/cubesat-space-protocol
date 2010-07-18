@@ -11,7 +11,7 @@ endif
 
 TARGET = libcsp.a
 ifndef OUTDIR
-OUTDIR = .
+OUTDIR = ../bin/x86
 endif
 MCU = at90can128
 CC = $(TOOLCHAIN)gcc
