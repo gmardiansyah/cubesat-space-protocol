@@ -42,18 +42,4 @@ csp_thread_return_t vTaskCSPRouter(void * pvParameters);
 void csp_promisc_add(csp_packet_t * packet, csp_queue_handle_t queue);
 #endif
 
-#if CSP_DEBUG
-void csp_route_print_table(void) {
-
-	int i;
-	for (i = 0; i < 16; i++)
-		if (iface[i].nexthop != NULL)
-			printf("\tNode: %u\t\tNexthop: %s\t\tCount: %u\r\n", i,
-					iface[i].name, iface[i].count);
-	printf("\tDefault\t\tNexthop: %s\t\tCount: %u\r\n", iface[16].name,
-			iface[16].count);
-
-}
-#endif
-
 #endif // _CSP_ROUTE_H_
