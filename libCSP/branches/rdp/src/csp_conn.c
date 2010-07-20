@@ -57,10 +57,9 @@ void csp_conn_check_timeouts(void) {
 #if CSP_USE_RDP
 		switch (arr_conn[i].idin.protocol) {
 		case CSP_RDP:
-			csp_rdp_flush_acked(&arr_conn[i]);
+			csp_rdp_check_timeouts(&arr_conn[i]);
 		}
 #endif
-
 
 	}
 
