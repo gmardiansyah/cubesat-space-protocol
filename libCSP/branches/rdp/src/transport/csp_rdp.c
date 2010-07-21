@@ -27,9 +27,8 @@
 #if CSP_USE_RDP
 
 static unsigned int csp_rdp_window_size = 3;
-
-#define RDP_CONNECTION_TIMEOUT_MS 	10000
-#define RDP_RETRANSMISSION_TIMEOUT 	100
+static unsigned int csp_rdp_conn_timeout = 10000;
+static unsigned int csp_rdp_packet_timeout = 100;
 
 /* Do not try to pack this stuct, the posix sem handle will stop working */
 struct csp_l4data_s {
@@ -39,10 +38,13 @@ struct csp_l4data_s {
 	int snd_iss;
 	int rcv_cur;
 	int rcv_irs;
-	int window_size;
+	unsigned int window_size;
+	unsigned int conn_timeout;
+	unsigned int packet_timeout;
 	uint16_t rcvdseqno[3 * 2];
 	csp_bin_sem_handle_t tx_wait;
 	csp_queue_handle_t tx_queue;
+	csp_queue_handle_t rx_queue;
 };
 
 typedef struct __attribute__((__packed__)) {
@@ -336,7 +338,7 @@ static void csp_rdp_flush_eack(csp_conn_t * conn, csp_packet_t * eack_packet) {
 				match = 1;
 			if (ntohs(eack[j]) > ntohs(header->seq_nr)) {
 				csp_debug(CSP_PROTOCOL, "Element lower than EACK, retransmitting in a jiffy\r\n");
-				packet->timestamp = csp_get_ms() - RDP_RETRANSMISSION_TIMEOUT;
+				packet->timestamp = csp_get_ms() - conn->l4data->packet_timeout;
 			}
 		}
 
@@ -392,7 +394,7 @@ void csp_rdp_check_timeouts(csp_conn_t * conn) {
 	 * Check that connection has not timed out inside the network stack
 	 * */
 	if ((conn->rx_socket != NULL) && (conn->rx_socket != (void *) 1)) {
-		if (conn->open_timestamp + RDP_CONNECTION_TIMEOUT_MS < time_now) {
+		if (conn->open_timestamp + conn->l4data->conn_timeout < time_now) {
 			csp_debug(CSP_WARN, "Found a lost connection, closing now\r\n");
 			csp_rdp_release();
 			csp_close(conn);
@@ -426,7 +428,7 @@ void csp_rdp_check_timeouts(csp_conn_t * conn) {
 		}
 
 		/* Check timestamp and retransmit if needed */
-		if (packet->timestamp + RDP_RETRANSMISSION_TIMEOUT < time_now) {
+		if (packet->timestamp + conn->l4data->packet_timeout < time_now) {
 			csp_debug(CSP_WARN, "TX Element timed out, retransmitting seq %u\r\n", ntohs(header->seq_nr));
 
 			/* Update to latest outgoing ACK */
@@ -710,7 +712,7 @@ retry:
 	csp_rdp_release();
 
 	csp_bin_sem_wait(&conn->l4data->tx_wait, 0);
-	int result = csp_bin_sem_wait(&conn->l4data->tx_wait, RDP_CONNECTION_TIMEOUT_MS);
+	int result = csp_bin_sem_wait(&conn->l4data->tx_wait, conn->l4data->conn_timeout);
 
 	if (!csp_rdp_wait()) {
 		csp_debug(CSP_ERROR, "Conn forcefully closed by network stack\r\n");
@@ -807,7 +809,11 @@ int csp_rdp_allocate(csp_conn_t * conn) {
 		return 0;
 	}
 
+	/* Fill in relevant information */
 	conn->l4data->state = RDP_CLOSED;
+	conn->l4data->window_size = csp_rdp_window_size;
+	conn->l4data->conn_timeout = csp_rdp_conn_timeout;
+	conn->l4data->packet_timeout = csp_rdp_packet_timeout;
 
 	/* Create a binary semaphore to wait on for tasks */
 	if (csp_bin_sem_create(&conn->l4data->tx_wait) != CSP_SEMAPHORE_OK) {
@@ -816,13 +822,21 @@ int csp_rdp_allocate(csp_conn_t * conn) {
 		return 0;
 	}
 
-	conn->l4data->window_size = csp_rdp_window_size;
-
 	/* Create TX queue */
 	conn->l4data->tx_queue = csp_queue_create(conn->l4data->window_size, sizeof(csp_packet_t *));
 	if (conn->l4data->tx_queue == NULL) {
 		csp_debug(CSP_ERROR, "Failed to create TX queue for conn\r\n");
 		csp_bin_sem_remove(&conn->l4data->tx_wait);
+		csp_free(conn->l4data);
+		return 0;
+	}
+
+	/* Create RX queue */
+	conn->l4data->rx_queue = csp_queue_create(conn->l4data->window_size * 2, sizeof(csp_packet_t *));
+	if (conn->l4data->rx_queue == NULL) {
+		csp_debug(CSP_ERROR, "Failes to create RX queue for conn\r\n");
+		csp_bin_sem_remove(&conn->l4data->tx_wait);
+		csp_queue_remove(conn->l4data->tx_queue);
 		csp_free(conn->l4data);
 		return 0;
 	}
@@ -854,6 +868,7 @@ void csp_rdp_close(csp_conn_t * conn) {
 	/* Deallocate memory */
 	if (conn->l4data != NULL) {
 		csp_queue_remove(conn->l4data->tx_queue);
+		csp_queue_remove(conn->l4data->rx_queue);
 		csp_bin_sem_remove(&conn->l4data->tx_wait);
 		csp_free(conn->l4data);
 		conn->l4data = NULL;
@@ -868,7 +883,7 @@ void csp_rdp_conn_print(csp_conn_t * conn) {
 	if (conn->l4data == NULL)
 		return;
 
-	printf("\tRDP: State %u, rcv %u, snd %u\r\n", conn->l4data->state, conn->l4data->rcv_cur, conn->l4data->snd_una);
+	printf("\tRDP: State %u, rcv %u, snd %u, win %u\r\n", conn->l4data->state, conn->l4data->rcv_cur, conn->l4data->snd_una, conn->l4data->window_size);
 
 }
 
