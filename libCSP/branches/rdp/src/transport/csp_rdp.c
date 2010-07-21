@@ -26,7 +26,8 @@
 
 #if CSP_USE_RDP
 
-#define RDP_WINDOW_MAX	3
+static unsigned int csp_rdp_window_size = 3;
+
 #define RDP_CONNECTION_TIMEOUT_MS 	10000
 #define RDP_RETRANSMISSION_TIMEOUT 	100
 
@@ -35,14 +36,11 @@ struct csp_l4data_s {
 	int state;
 	int snd_nxt;
 	int snd_una;
-	int snd_max;
 	int snd_iss;
 	int rcv_cur;
-	int rcv_max;
 	int rcv_irs;
-	int sbuf_max;
-	int rbuf_max;
-	uint16_t rcvdseqno[RDP_WINDOW_MAX * 2];
+	int window_size;
+	uint16_t rcvdseqno[3 * 2];
 	csp_bin_sem_handle_t tx_wait;
 	csp_queue_handle_t tx_queue;
 };
@@ -184,7 +182,7 @@ static void csp_rdp_send_eack(csp_conn_t * conn) {
 
 	/* Generate contents */
 	int i;
-	for (i = 0; i < RDP_WINDOW_MAX * 2; i++) {
+	for (i = 0; i < conn->l4data->window_size * 2; i++) {
 		if (conn->l4data->rcvdseqno[i] == 0)
 			continue;
 
@@ -211,7 +209,7 @@ static void csp_rdp_send_eack(csp_conn_t * conn) {
 static void inline csp_rdp_rcvseqnr_del(csp_conn_t * conn, uint16_t seq_nr) {
 
 	int i;
-	for (i = 0; i < RDP_WINDOW_MAX * 2; i++) {
+	for (i = 0; i < conn->l4data->window_size * 2; i++) {
 		if (conn->l4data->rcvdseqno[i] == seq_nr)
 			conn->l4data->rcvdseqno[i] = 0;
 	}
@@ -224,7 +222,7 @@ static void inline csp_rdp_rcvseqnr_add(csp_conn_t * conn, uint16_t seq_nr) {
 	csp_rdp_rcvseqnr_del(conn, seq_nr);
 
 	int i;
-	for (i = 0; i < RDP_WINDOW_MAX * 2; i++) {
+	for (i = 0; i < conn->l4data->window_size * 2; i++) {
 		if (conn->l4data->rcvdseqno[i] == 0) {
 			conn->l4data->rcvdseqno[i] = seq_nr;
 			break;
@@ -236,7 +234,7 @@ static void inline csp_rdp_rcvseqnr_flush(csp_conn_t * conn) {
 
 	int i;
 	hell:
-	for (i = 0; i < RDP_WINDOW_MAX * 2; i++) {
+	for (i = 0; i < conn->l4data->window_size * 2; i++) {
 		if (conn->l4data->rcvdseqno[i] == conn->l4data->rcv_cur + 1) {
 			conn->l4data->rcvdseqno[i] = 0;
 			conn->l4data->rcv_cur += 1;
@@ -363,8 +361,15 @@ static void csp_rdp_flush_eack(csp_conn_t * conn, csp_packet_t * eack_packet) {
  * RDP protocol to work as expected. This takes care of closing
  * stale connections and retransmitting traffic. A good place to
  * call this function is from the CSP router task.
+ * NOTE: the queue calls in this function has been optimized for speed
+ * that means using the _isr functions even though it is called only
+ * from task context. However the RDP lock ensures that everything
+ * is safe.
  */
 void csp_rdp_check_timeouts(csp_conn_t * conn) {
+
+	/* Used for queue calls */
+	CSP_BASE_TYPE pdTrue = 1;
 
 	/* Wait for RDP to be ready */
 	if (!csp_rdp_wait())
@@ -405,7 +410,7 @@ void csp_rdp_check_timeouts(csp_conn_t * conn) {
 	unsigned int count = csp_queue_size(conn->l4data->tx_queue);
 	for (i = 0; i < count; i++) {
 
-		if ((csp_queue_dequeue(conn->l4data->tx_queue, &packet, 0) != CSP_QUEUE_OK) || packet == NULL) {
+		if ((csp_queue_dequeue_isr(conn->l4data->tx_queue, &packet, &pdTrue) != CSP_QUEUE_OK) || packet == NULL) {
 			csp_debug(CSP_ERROR, "Cannot dequeue from tx_queue in flush\r\n");
 			break;
 		}
@@ -437,14 +442,14 @@ void csp_rdp_check_timeouts(csp_conn_t * conn) {
 		}
 
 		/* Requeue the TX element */
-		csp_queue_enqueue(conn->l4data->tx_queue, &packet, 0);
+		csp_queue_enqueue_isr(conn->l4data->tx_queue, &packet, &pdTrue);
 
 	}
 
 	/* Wake user task if TX queue is ready for more data */
 	if (conn->l4data->state == RDP_OPEN)
-		if (csp_queue_size(conn->l4data->tx_queue) < RDP_WINDOW_MAX)
-			if (conn->l4data->snd_nxt < conn->l4data->snd_una + RDP_WINDOW_MAX * 2)
+		if (csp_queue_size(conn->l4data->tx_queue) < conn->l4data->window_size)
+			if (conn->l4data->snd_nxt < conn->l4data->snd_una + conn->l4data->window_size * 2)
 				csp_bin_sem_post(&conn->l4data->tx_wait);
 
 	csp_rdp_release();
@@ -570,7 +575,7 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet) {
 	{
 
 		/* Check sequence number */
-		if (!((conn->l4data->rcv_cur < rx_header->seq_nr) && (rx_header->seq_nr <= conn->l4data->rcv_cur + RDP_WINDOW_MAX * 2))) {
+		if (!((conn->l4data->rcv_cur < rx_header->seq_nr) && (rx_header->seq_nr <= conn->l4data->rcv_cur + conn->l4data->window_size * 2))) {
 			csp_debug(CSP_WARN, "Sequence number unacceptable\r\n");
 			/* If duplicate SYN received, send another SYN/ACK */
 			if (conn->l4data->state == RDP_SYN_RCVD)
@@ -594,7 +599,7 @@ void csp_rdp_new_packet(csp_conn_t * conn, csp_packet_t * packet) {
 		}
 
 		/* We have an ACK: Check LOW boundry: */
-		if (rx_header->ack_nr < conn->l4data->snd_una - 1 - (RDP_WINDOW_MAX * 2)) {
+		if (rx_header->ack_nr < conn->l4data->snd_una - 1 - (conn->l4data->window_size * 2)) {
 			csp_debug(CSP_ERROR, "ACK number too low!\r\n");
 			goto discard_close;
 		}
@@ -754,7 +759,7 @@ int csp_rdp_send(csp_conn_t* conn, csp_packet_t * packet, unsigned int timeout) 
 
 	csp_debug(CSP_PROTOCOL, "RDP: SEND SEQ %u\r\n", conn->l4data->snd_nxt);
 
-	if (conn->l4data->snd_nxt >= conn->l4data->snd_una + RDP_WINDOW_MAX) {
+	if (conn->l4data->snd_nxt >= conn->l4data->snd_una + conn->l4data->window_size) {
 		csp_bin_sem_wait(&conn->l4data->tx_wait, 0);
 		if ((csp_bin_sem_wait(&conn->l4data->tx_wait, timeout)) == CSP_SEMAPHORE_OK) {
 			csp_bin_sem_post(&conn->l4data->tx_wait);
@@ -811,8 +816,10 @@ int csp_rdp_allocate(csp_conn_t * conn) {
 		return 0;
 	}
 
+	conn->l4data->window_size = csp_rdp_window_size;
+
 	/* Create TX queue */
-	conn->l4data->tx_queue = csp_queue_create(RDP_WINDOW_MAX, sizeof(csp_packet_t *));
+	conn->l4data->tx_queue = csp_queue_create(conn->l4data->window_size, sizeof(csp_packet_t *));
 	if (conn->l4data->tx_queue == NULL) {
 		csp_debug(CSP_ERROR, "Failed to create TX queue for conn\r\n");
 		csp_bin_sem_remove(&conn->l4data->tx_wait);
@@ -821,7 +828,7 @@ int csp_rdp_allocate(csp_conn_t * conn) {
 	}
 
 	/* Clear EACK seq numbers */
-	memset(conn->l4data->rcvdseqno, 0, RDP_WINDOW_MAX * 2 * sizeof(uint16_t));
+	memset(conn->l4data->rcvdseqno, 0, conn->l4data->window_size * 2 * sizeof(uint16_t));
 
 	return 1;
 
