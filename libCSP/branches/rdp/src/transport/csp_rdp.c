@@ -70,10 +70,11 @@ typedef struct __attribute__((__packed__)) rdp_header_s {
 	uint8_t ack;
 	uint8_t eak;
 	uint8_t rst;
+	uint8_t nul;
+	uint8_t rdp_length;
 	uint16_t seq_nr;
 	uint16_t ack_nr;
 } rdp_header_t;
-
 
 /**
  * LOCKING:
