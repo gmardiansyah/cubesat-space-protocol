@@ -23,6 +23,7 @@ make ARCH=posix TOOLCHAIN= OUTDIR=. clean all
 _Johan, please write this_
 
 = CSP initialization sequence =
+This code initializes the CSP buffer system, device drivers and router core. The example uses the CAN interface function `csp_can_tx` but the initialization is similar for other interfaces. The loopback interface does not require any explicit initialization. 
 {{{
 /* Define subsystem address to 0 */
 #define MY_ADDRESS  0
@@ -46,7 +47,7 @@ csp_route_set("CAN", CSP_DEFAULT_ROUTE, &csp_can_tx);
 csp_route_start_task(500, 1);
 }}}
 = Creating a server =
-This example shows how to create a server task that listens for incoming connections. CSP should be initialized before starting this task.
+This example shows how to create a server task that listens for incoming connections. CSP should be initialized before starting this task. Note the use of `csp_service_handler()` as the default branch in the port switch case. The service handler will automatically reply to e.g. ping requests and memory status requests.
 {{{
 void csp_task(void * parameters) {
     /* Create socket */
@@ -62,7 +63,7 @@ void csp_task(void * parameters) {
     csp_conn_t * conn;
     csp_packet_t * packet;
 
-    /* Process incoming connections *
+    /* Process incoming connections */
     while (1) {
         /* Wait for connection, 10000 ms timeout */    
         if ((conn = csp_accept(sock, 10000)) == NULL)
