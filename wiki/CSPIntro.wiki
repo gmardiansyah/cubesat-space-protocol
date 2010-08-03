@@ -1,0 +1,32 @@
+#summary Short introduction to CSP
+#labels Phase-Implementation
+
+= Introduction =
+
+Add your content here.
+
+
+= Compiling with Makefile =
+
+= Compiling with Eclipse IDE =
+
+= CSP initialization sequence =
+{{{
+/* Define subsystem address to 0 */
+#define MY_ADDRESS  0
+/* Use promisc mode on CAN (1 = yes, 0 = no) */
+#define CAN_PROMISC 0
+/* Init buffer system with 12 elements of 320 bytes each */
+csp_buffer_init(12, 320);
+/* Init CSP with address MY_ADDRESS */
+csp_init(MY_ADDRESS);
+/* Init the CAN interface without promisc mode */
+csp_can_init(MY_ADDRESS, CAN_PROMISC);
+/* Setup default route to CAN interface */
+csp_route_set("CAN", CSP_DEFAULT_ROUTE, &csp_can_tx);
+/* Start router task with 500 word stack, OS task priority 1 */
+csp_route_start_task(500, 1);
+}}}
+= Creating a server =
+
+= Creating a client =
