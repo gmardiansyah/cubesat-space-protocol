@@ -33,6 +33,7 @@ csp_route_set("CAN", CSP_DEFAULT_ROUTE, &csp_can_tx);
 csp_route_start_task(500, 1);
 }}}
 = Creating a server =
+This example shows how to create a server task that listens for incoming connections. CSP should be initialized before starting this task.
 {{{
 void csp_task(void * parameters) {
     /* Create socket */
@@ -80,3 +81,42 @@ void csp_task(void * parameters) {
 }}}
 
 = Creating a client =
+This example shows how to allocate a packet buffer, connect to another host and send the packet. CSP should be initialized before calling this function.
+{{{
+void send_packet(void) {
+    /* Get packet buffer for data */
+    csp_packet_t * packet = csp_buffer_get(data_size);
+    if (packet == NULL) {
+        /* Could not get buffer element */
+        printf("Failed to get buffer element\n");
+        return -1;
+    }
+
+    /* Connect to host HOST, port PORT with regular UDP-like protocol */
+    csp_conn_t * conn = csp_connect(CSP_UDP, CSP_PRIO_NORM, HOST, PORT);
+    if (conn == NULL) {
+        /* Connect failed */
+        printf("Connection failed\n");
+        /* Remember to free packet buffer */
+        csp_buffer_free(packet);
+        return -1;
+    }
+
+    /* Copy dummy data to packet (Note potential buffer overflow) */
+    char * msg = "HELLO";
+    strcpy(packet->data, dummy);
+
+    /* Set packet length */
+    packet->length = strlen(msg);
+
+    /* Send packet */
+    if (!csp_send(conn, packet, 1000)) {
+        /* Send failed */
+        printf("Send failed\n");
+        csp_buffer_free(packet);
+    }
+
+    /* Close connection */
+    csp_close(conn);
+}
+}}}
