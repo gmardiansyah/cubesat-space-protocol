@@ -9,12 +9,12 @@ The Makefile takes 3 defines as arguments:
  * TOOLCHAIN specifies the prefix for the gcc commands. Use e.g. TOOLCHAIN=avr- to call avr-gcc, avr-ld etc. 
  * OUTDIR specifies the output directory for libcsp.a
 
-== Compiling for AVR8 with FreeRTOS ==
+=== Compiling for AVR8 with FreeRTOS ===
 {{{
 make ARCH=freertos TOOLCHAIN=avr- OUTDIR=. clean all
 }}}
 
-== Compiling for x86/x86_64 with Posix compliant system ==
+=== Compiling for x86/x86_64 with Posix compliant system ===
 {{{
 make ARCH=posix TOOLCHAIN= OUTDIR=. clean all
 }}}
@@ -69,7 +69,7 @@ void csp_task(void * parameters) {
         if ((conn = csp_accept(sock, 10000)) == NULL)
             continue;
 
-        /* Read packets */
+        /* Read packets. Timout is 1000 ms */
         while ((packet = csp_read(conn, 1000)) != NULL) {
             
             switch (csp_conn_dport(conn)) {
