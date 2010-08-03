@@ -1,5 +1,4 @@
 #summary Short introduction to CSP
-#labels Phase-Implementation
 
 = Introduction =
 
@@ -14,19 +13,70 @@ Add your content here.
 {{{
 /* Define subsystem address to 0 */
 #define MY_ADDRESS  0
+
 /* Use promisc mode on CAN (1 = yes, 0 = no) */
 #define CAN_PROMISC 0
+
 /* Init buffer system with 12 elements of 320 bytes each */
 csp_buffer_init(12, 320);
+
 /* Init CSP with address MY_ADDRESS */
 csp_init(MY_ADDRESS);
+
 /* Init the CAN interface without promisc mode */
 csp_can_init(MY_ADDRESS, CAN_PROMISC);
+
 /* Setup default route to CAN interface */
 csp_route_set("CAN", CSP_DEFAULT_ROUTE, &csp_can_tx);
+
 /* Start router task with 500 word stack, OS task priority 1 */
 csp_route_start_task(500, 1);
 }}}
 = Creating a server =
+{{{
+void csp_task(void * parameters) {
+    /* Create socket */
+    csp_socket_t * sock = csp_socket();
+
+    /* Bind all ports to socket*/
+    csp_bind(sock, CSP_ANY);
+
+    /* Create 10 connections backlog queue */
+    csp_listen(sock, 10);
+
+    /* Pointer to current connection and packet */
+    csp_conn_t * conn;
+    csp_packet_t * packet;
+
+    /* Process incoming connections *
+    while (1) {
+        /* Wait for connection, 10000 ms timeout */    
+        if ((conn = csp_accept(sock, 10000)) == NULL)
+            continue;
+
+        /* Read packets */
+        while ((packet = csp_read(conn, 1000)) != NULL) {
+            
+            switch (csp_conn_dport(conn)) {
+
+                case MY_PORT:
+                    
+                    /* Process packet here */
+                    
+                default:
+                    /* Let the service handler reply pings, memory use, etc. */
+                    csp_service_handler(conn, packet);
+                    break;
+
+            }
+
+        }
+
+        /* Close current connection, and handle next */
+        csp_close(conn);
+
+    }
+}
+}}}
 
 = Creating a client =
