@@ -1,13 +1,26 @@
 #summary Short introduction to CSP
 
 = Introduction =
+This guide is a short introduction to CSP. The guide includes compiling the library, initialization code and examples of a server and a client. 
 
-Add your content here.
+= Compiling libcsp with Makefile =
+The Makefile takes 3 defines as arguments:
+ * ARCH specifies the CSP architecture. Posix or FreeRTOS are valid options.
+ * TOOLCHAIN specifies the prefix for the gcc commands. Use e.g. TOOLCHAIN=avr- to call avr-gcc, avr-ld etc. 
+ * OUTDIR specifies the output directory for libcsp.a
 
+== Compiling for AVR8 with FreeRTOS ==
+{{{
+make ARCH=freertos TOOLCHAIN=avr- OUTDIR=. clean all
+}}}
 
-= Compiling with Makefile =
+== Compiling for x86/x86_64 with Posix compliant system ==
+{{{
+make ARCH=posix TOOLCHAIN= OUTDIR=. clean all
+}}}
 
-= Compiling with Eclipse IDE =
+= Compiling libcsp with Eclipse IDE =
+_Johan, please write this_
 
 = CSP initialization sequence =
 {{{
