@@ -41,7 +41,7 @@ csp_init(MY_ADDRESS);
 csp_can_init(MY_ADDRESS, CAN_PROMISC);
 
 /* Setup default route to CAN interface */
-csp_route_set("CAN", CSP_DEFAULT_ROUTE, &csp_can_tx);
+csp_route_set("CAN", CSP_DEFAULT_ROUTE, &csp_can_tx, CSP_HOST_MAC);
 
 /* Start router task with 500 word stack, OS task priority 1 */
 csp_route_start_task(500, 1);
