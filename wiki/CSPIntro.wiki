@@ -50,8 +50,8 @@ csp_route_start_task(500, 1);
 This example shows how to create a server task that listens for incoming connections. CSP should be initialized before starting this task. Note the use of `csp_service_handler()` as the default branch in the port switch case. The service handler will automatically reply to e.g. ping requests and memory status requests.
 {{{
 void csp_task(void * parameters) {
-    /* Create socket */
-    csp_socket_t * sock = csp_socket();
+    /* Create socket without any socket options */
+    csp_socket_t * sock = csp_socket(0);
 
     /* Bind all ports to socket*/
     csp_bind(sock, CSP_ANY);
@@ -106,8 +106,8 @@ void send_packet(void) {
         return -1;
     }
 
-    /* Connect to host HOST, port PORT with regular UDP-like protocol */
-    csp_conn_t * conn = csp_connect(CSP_UDP, CSP_PRIO_NORM, HOST, PORT);
+    /* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
+    csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, HOST, PORT, 1000, 0);
     if (conn == NULL) {
         /* Connect failed */
         printf("Connection failed\n");
